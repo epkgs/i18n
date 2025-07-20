@@ -9,21 +9,21 @@ import (
 )
 
 type Item struct {
-	defaultLang string
-	trans       map[string]string // language -> text
+	i18n  *I18n
+	trans map[string]string // language -> text
 
 	matcher  language.Matcher
 	langTags []language.Tag
 }
 
-func newItem(defaultLang string, defaultText string) *Item {
+func newItem(i18n *I18n, defaultText string) *Item {
 
 	item := &Item{
-		defaultLang: defaultLang,
-		trans:       make(map[string]string),
+		i18n:  i18n,
+		trans: make(map[string]string),
 	}
 
-	return item.AddTrans(defaultLang, defaultText)
+	return item.AddTrans(i18n.opts.DefaultLang, defaultText)
 }
 
 func (item *Item) AddTrans(lang string, text string) *Item {
@@ -47,7 +47,7 @@ func (item *Item) AddTrans(lang string, text string) *Item {
 }
 
 func (item *Item) String() string {
-	if txt, exist := item.trans[item.defaultLang]; exist {
+	if txt, exist := item.trans[item.i18n.opts.DefaultLang]; exist {
 		return txt
 	}
 	return ""
@@ -77,7 +77,7 @@ func (item *Item) TTag(tags []language.Tag, args ...any) string {
 	if tag, exist := item.match(tags...); exist {
 		lang = tag.String()
 	} else {
-		lang = item.defaultLang
+		lang = item.i18n.opts.DefaultLang
 	}
 
 	key := strings.Replace(lang, "-", "_", -1)

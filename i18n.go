@@ -40,7 +40,7 @@ func New(name string, fn ...OptionsFunc) *I18n {
 }
 
 func (i18n *I18n) NewItem(defaultText string) *Item {
-	i18n.items[defaultText] = newItem(i18n.opts.DefaultLang, defaultText)
+	i18n.items[defaultText] = newItem(i18n, defaultText)
 	return i18n.items[defaultText]
 }
 
