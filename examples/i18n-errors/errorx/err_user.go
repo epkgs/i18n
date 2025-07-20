@@ -2,12 +2,14 @@ package errorx
 
 import (
 	"net/http"
+
+	"github.com/epkgs/i18n/errors"
 )
 
-var userErrors = NewFactory("user")
+var userErrors = errors.New("user")
 
 var (
-	ErrUserNotExit = userErrors.NewA1(1001, http.StatusNotFound, "User %s not exist")
+	ErrUserNotExit = userErrors.New("User %s not exist").WithHttpStatus(http.StatusNotFound)
 )
 
 func init() {

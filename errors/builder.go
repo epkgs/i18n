@@ -1,0 +1,19 @@
+package errors
+
+import (
+	"github.com/epkgs/i18n"
+)
+
+type Builder struct {
+	I18n *i18n.I18n
+}
+
+func New(name string, fn ...i18n.OptionsFunc) *Builder {
+	return &Builder{
+		I18n: i18n.New(name, fn...),
+	}
+}
+
+func (b *Builder) New(txt string) *Error {
+	return newError(b.I18n.New(txt))
+}

@@ -1,7 +1,7 @@
 package response
 
 import (
-	"github.com/epkgs/i18n/examples/i18n-errors/errorx"
+	"github.com/epkgs/i18n/errors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,9 +16,9 @@ func Fail(c *gin.Context, err error) {
 
 	httpStatus := 500
 
-	if e, ok := err.(*errorx.Error); ok {
+	if e, ok := err.(*errors.Error); ok {
 		httpStatus = e.HttpStatus()
-		e.WithContext(c.Request.Context())
+		err = e.WithContext(c.Request.Context())
 	}
 
 	c.JSON(httpStatus, JsonResponse{
