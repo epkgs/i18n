@@ -14,7 +14,7 @@ func NewFactory(name string, fn ...i18n.OptionsFunc) *Factory {
 	}
 }
 
-func (f *Factory) newBuilder(code, httpStatus int, msg string) *Builder {
+func (f *Factory) new(code, httpStatus int, msg string) *Builder {
 	item := f.I18n.NewItem(msg)
 
 	err := &Error{
@@ -26,30 +26,30 @@ func (f *Factory) newBuilder(code, httpStatus int, msg string) *Builder {
 	return &Builder{def: err}
 }
 
-func (f *Factory) New(code, httpStatus int, txt string) BuilderA0 {
-	return f.newBuilder(code, httpStatus, txt)
+func (f *Factory) NewA0(code, httpStatus int, txt string) BuilderA0 {
+	return f.new(code, httpStatus, txt)
 }
 
 func (f *Factory) NewA1(code, httpStatus int, txt string) BuilderA1 {
-	return f.newBuilder(code, httpStatus, txt)
+	return f.new(code, httpStatus, txt)
 }
 
 func (f *Factory) NewA2(code, httpStatus int, txt string) BuilderA2 {
-	return f.newBuilder(code, httpStatus, txt)
+	return f.new(code, httpStatus, txt)
 }
 
 func (f *Factory) NewA3(code, httpStatus int, txt string) BuilderA3 {
-	return f.newBuilder(code, httpStatus, txt)
+	return f.new(code, httpStatus, txt)
 }
 
 func (f *Factory) NewA4(code, httpStatus int, txt string) BuilderA4 {
-	return f.newBuilder(code, httpStatus, txt)
+	return f.new(code, httpStatus, txt)
 }
 
 func (f *Factory) NewA5(code, httpStatus int, txt string) BuilderA5 {
-	return f.newBuilder(code, httpStatus, txt)
+	return f.new(code, httpStatus, txt)
 }
 
 func (f *Factory) NewAN(code, httpStatus int, txt string) BuilderAN {
-	return f.newBuilder(code, httpStatus, txt)
+	return f.new(code, httpStatus, txt)
 }

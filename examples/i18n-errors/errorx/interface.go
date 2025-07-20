@@ -6,7 +6,7 @@ type cbuilder interface {
 
 type BuilderA0 interface {
 	cbuilder
-	New() *Error
+	NewA0() *Error
 }
 
 type BuilderA1 interface {
