@@ -12,7 +12,7 @@ func main() {
 		opts.DefaultLang = "en"
 	})
 
-	UserNotExist := userI18n.NewItem("User %s not exist")
+	UserNotExist := userI18n.New("User %s not exist")
 
 	i18n.LoadTranslations(userI18n)
 

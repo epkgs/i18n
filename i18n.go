@@ -38,11 +38,13 @@ func New(name string, fn ...OptionsFunc) *I18n {
 	}
 }
 
-func (i18n *I18n) NewItem(defaultText string) *Item {
+// new item
+func (i18n *I18n) New(defaultText string) *Item {
 	i18n.items[defaultText] = newItem(i18n, defaultText)
 	return i18n.items[defaultText]
 }
 
+// add trans to item
 func (i18n *I18n) AddTrans(lang string, defaultText, transText string) *I18n {
 	if _, exist := i18n.items[defaultText]; exist {
 		i18n.items[defaultText].AddTrans(lang, transText)

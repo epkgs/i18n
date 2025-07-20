@@ -5,7 +5,7 @@ import "github.com/epkgs/i18n"
 var userI18n = i18n.New("user")
 
 var (
-	UserNotExist = userI18n.NewItem("User %s not exist")
+	UserNotExist = userI18n.New("User %s not exist")
 )
 
 func init() {

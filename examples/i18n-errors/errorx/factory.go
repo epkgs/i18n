@@ -15,7 +15,7 @@ func NewFactory(name string, fn ...i18n.OptionsFunc) *Factory {
 }
 
 func (f *Factory) new(code, httpStatus int, msg string) *Builder {
-	item := f.I18n.NewItem(msg)
+	item := f.I18n.New(msg)
 
 	err := &Error{
 		Item:       item,
