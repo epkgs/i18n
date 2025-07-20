@@ -8,12 +8,12 @@ type Builder struct {
 	I18n *i18n.I18n
 }
 
-func New(name string, fn ...i18n.OptionsFunc) *Builder {
+func NewBuilder(name string, fn ...i18n.OptionsFunc) *Builder {
 	return &Builder{
 		I18n: i18n.New(name, fn...),
 	}
 }
 
 func (b *Builder) New(code int, txt string, httpStatus int) *Error {
-	return newError(b.I18n.New(txt), code, httpStatus)
+	return New(b.I18n.New(txt), code, httpStatus)
 }
