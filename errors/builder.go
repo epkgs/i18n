@@ -14,6 +14,6 @@ func New(name string, fn ...i18n.OptionsFunc) *Builder {
 	}
 }
 
-func (b *Builder) New(txt string) *Error {
-	return newError(b.I18n.New(txt))
+func (b *Builder) New(code int, txt string, httpStatus int) *Error {
+	return newError(b.I18n.New(txt), code, httpStatus)
 }

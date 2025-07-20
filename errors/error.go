@@ -18,11 +18,11 @@ type Error struct {
 	extra any // extra data for custom error
 }
 
-func newError(t *i18n.Item) *Error {
+func newError(t *i18n.Item, code, httpStatus int) *Error {
 	return &Error{
 		t:          t,
-		code:       1,
-		httpStatus: 200,
+		code:       code,
+		httpStatus: httpStatus,
 	}
 }
 
@@ -55,23 +55,6 @@ func (e *Error) Code() int {
 
 func (e *Error) HttpStatus() int {
 	return e.httpStatus
-}
-
-// return new error with code
-func (e *Error) WithCode(code int) *Error {
-	err := e.Clone()
-	err.code = code
-	return err
-}
-
-// return new error with http status
-func (e *Error) WithHttpStatus(httpStatus int) *Error {
-	err := e.Clone()
-	err.httpStatus = httpStatus
-	if httpStatus >= 400 && err.code == 1 {
-		err.code = httpStatus
-	}
-	return err
 }
 
 // return new error with context

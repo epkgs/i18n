@@ -9,7 +9,7 @@ import (
 var userErrors = errors.New("user")
 
 var (
-	ErrUserNotExit = userErrors.New("User %s not exist").WithHttpStatus(http.StatusNotFound)
+	ErrUserNotExit = userErrors.New(1, "User %s not exist", http.StatusNotFound)
 )
 
 func init() {
