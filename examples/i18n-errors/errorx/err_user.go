@@ -4,12 +4,12 @@ import (
 	"net/http"
 )
 
-var userFactory = NewFactory("user")
+var userErrors = NewFactory("user")
 
 var (
-	ErrUserNotExit = userFactory.NewA1(1001, http.StatusNotFound, "User %s not exist")
+	ErrUserNotExit = userErrors.NewA1(1001, http.StatusNotFound, "User %s not exist")
 )
 
 func init() {
-	userFactory.I18n.LoadLocales()
+	userErrors.I18n.LoadLocales()
 }
