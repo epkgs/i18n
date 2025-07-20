@@ -9,5 +9,5 @@ var (
 )
 
 func init() {
-	i18n.LoadLocales(userI18n)
+	i18n.LoadTranslations(userI18n)
 }

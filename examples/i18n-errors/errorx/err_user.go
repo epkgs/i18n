@@ -11,5 +11,5 @@ var (
 )
 
 func init() {
-	userErrors.I18n.LoadLocales()
+	userErrors.I18n.LoadTranslations()
 }

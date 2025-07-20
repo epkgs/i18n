@@ -3,12 +3,11 @@ package i18n
 import (
 	"log"
 	"os"
-	"path"
 )
 
 type Options struct {
-	DefaultLang string // default language, default is "en"
-	LocalesPath string // locales path, default is "locales"
+	DefaultLang   string // default language, default is "en"
+	ResourcesPath string // resources path, default is "locales"
 }
 
 type OptionsFunc func(opts *Options)
@@ -23,8 +22,8 @@ type I18n struct {
 func New(name string, fn ...OptionsFunc) *I18n {
 
 	opts := Options{
-		DefaultLang: "en",
-		LocalesPath: "locales",
+		DefaultLang:   "en",
+		ResourcesPath: "locales",
 	}
 
 	for _, f := range fn {
@@ -52,8 +51,8 @@ func (i18n *I18n) AddTrans(lang string, defaultText, transText string) *I18n {
 	return i18n
 }
 
-func (i18n *I18n) LoadLocales() {
-	rd, err := os.ReadDir(i18n.opts.LocalesPath)
+func (i18n *I18n) LoadTranslations() {
+	rd, err := os.ReadDir(i18n.opts.ResourcesPath)
 	if err != nil {
 		log.Printf("read locales path error: %v", err)
 		// 读取出错则直接返回
@@ -63,7 +62,7 @@ func (i18n *I18n) LoadLocales() {
 	for _, f := range rd {
 		if f.IsDir() {
 
-			trans, err := i18n.parser.Parse(path.Join(i18n.opts.LocalesPath, f.Name()), i18n.name)
+			trans, err := i18n.parser.Parse(i18n.opts.ResourcesPath, f.Name(), i18n.name)
 			if err != nil {
 				log.Println(err)
 				continue
@@ -78,8 +77,8 @@ func (i18n *I18n) LoadLocales() {
 	}
 }
 
-func LoadLocales(i18n ...*I18n) {
+func LoadTranslations(i18n ...*I18n) {
 	for _, i := range i18n {
-		i.LoadLocales()
+		i.LoadTranslations()
 	}
 }

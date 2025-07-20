@@ -14,7 +14,7 @@ func main() {
 
 	UserNotExist := userI18n.NewItem("User %s not exist")
 
-	i18n.LoadLocales(userI18n)
+	i18n.LoadTranslations(userI18n)
 
 	fmt.Printf("Default: %s\n", UserNotExist.T(context.Background(), "test"))
 

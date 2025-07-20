@@ -9,15 +9,16 @@ import (
 
 type Parser interface {
 	// parse translation file
-	// dir: translation file directory
+	// dir: resources directory
+	// lang: language code
 	// name: translation file name without extension
-	Parse(dir string, name string) (map[string]string, error)
+	Parse(dir, lang, name string) (map[string]string, error)
 }
 
 type JsonParser struct{}
 
-func (p *JsonParser) Parse(dir string, name string) (map[string]string, error) {
-	filePath := path.Join(dir, name+".json")
+func (p *JsonParser) Parse(dir, lang, name string) (map[string]string, error) {
+	filePath := path.Join(dir, lang, name+".json")
 	if !isFileExist(filePath) {
 		return nil, nil
 	}
