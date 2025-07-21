@@ -18,7 +18,7 @@ type Error struct {
 	extra any // extra data for custom error
 }
 
-func New(t *i18n.Item, code, httpStatus int) *Error {
+func New(code int, t *i18n.Item, httpStatus int) *Error {
 	return &Error{
 		t:          t,
 		code:       code,
