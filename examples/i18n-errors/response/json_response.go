@@ -17,7 +17,7 @@ func Fail(c *gin.Context, err error) {
 	httpStatus := 500
 
 	if e, ok := err.(*errors.Error); ok {
-		httpStatus = e.HttpStatus()
+		httpStatus = e.GetHttpStatus()
 		err = e.WithContext(c.Request.Context())
 	}
 

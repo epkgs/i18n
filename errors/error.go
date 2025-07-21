@@ -49,11 +49,11 @@ func (e *Error) AddTrans(lang, text string) {
 	e.t.AddTrans(lang, text)
 }
 
-func (e *Error) Code() int {
+func (e *Error) GetCode() int {
 	return e.code
 }
 
-func (e *Error) HttpStatus() int {
+func (e *Error) GetHttpStatus() int {
 	return e.httpStatus
 }
 
