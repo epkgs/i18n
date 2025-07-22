@@ -17,7 +17,7 @@ func Login(c *gin.Context) {
 	var req LoginRequest
 	c.ShouldBindJSON(&req)
 
-	err := errorx.ErrUserNotExit.WithArgs(req.Username)
+	err := errorx.ErrUserNotExit.New(c.Request.Context(), req.Username)
 
 	response.Fail(c, err)
 }

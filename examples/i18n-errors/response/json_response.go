@@ -1,7 +1,6 @@
 package response
 
 import (
-	"github.com/epkgs/i18n/errors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,14 +14,21 @@ type JsonResponse struct {
 func Fail(c *gin.Context, err error) {
 
 	httpStatus := 500
+	{
+		if e, ok := err.(interface{ HttpStatus() int }); ok {
+			httpStatus = e.HttpStatus()
+		}
+	}
 
-	if e, ok := err.(*errors.Error); ok {
-		httpStatus = e.GetHttpStatus()
-		err = e.WithContext(c.Request.Context())
+	code := 1
+	{
+		if e, ok := err.(interface{ Code() int }); ok {
+			code = e.Code()
+		}
 	}
 
 	c.JSON(httpStatus, JsonResponse{
-		Code:    1, // 非 0
+		Code:    code,
 		Message: err.Error(),
 	})
 }

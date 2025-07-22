@@ -19,7 +19,7 @@ type I18n struct {
 	parser Parser
 }
 
-func New(name string, fn ...OptionsFunc) *I18n {
+func NewCatalog(name string, fn ...OptionsFunc) *I18n {
 
 	opts := Options{
 		DefaultLang:   "en",
@@ -42,6 +42,10 @@ func New(name string, fn ...OptionsFunc) *I18n {
 func (i18n *I18n) New(defaultText string) *Item {
 	i18n.items[defaultText] = newItem(i18n, defaultText)
 	return i18n.items[defaultText]
+}
+
+func (i18n *I18n) Name() string {
+	return i18n.name
 }
 
 // add trans to item

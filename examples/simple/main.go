@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	userI18n := i18n.New("user", func(opts *i18n.Options) {
+	userI18n := i18n.NewCatalog("user", func(opts *i18n.Options) {
 		opts.DefaultLang = "en"
 	})
 

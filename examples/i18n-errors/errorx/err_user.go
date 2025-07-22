@@ -3,15 +3,15 @@ package errorx
 import (
 	"net/http"
 
-	"github.com/epkgs/i18n/errors"
+	"github.com/epkgs/i18n"
 )
 
-var userErrors = errors.NewBuilder("user")
+var userErrors = i18n.NewCatalog("user")
 
 var (
-	ErrUserNotExit = userErrors.New(1, "User %s not exist", http.StatusNotFound)
+	ErrUserNotExit = userErrors.DefineError("User %s not exist").WithStatus(1, http.StatusNotFound)
 )
 
 func init() {
-	userErrors.I18n.LoadTranslations()
+	userErrors.LoadTranslations()
 }
