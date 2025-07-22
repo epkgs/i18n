@@ -12,20 +12,22 @@ type ErrorWrapper func(error) error
 
 type errorDefinition struct {
 	t        *Item // i18n item
-	def      error
+	base     error
 	wrappers []ErrorWrapper
 }
 
 func newErrorDefinition(t *Item, wrappers ...ErrorWrapper) *errorDefinition {
-	return &errorDefinition{
+	def := &errorDefinition{
 		t:        t,
-		def:      newError(t, nil),
 		wrappers: wrappers,
 	}
+
+	def.base = def.New(context.Background())
+	return def
 }
 
 func (d *errorDefinition) Base() error {
-	return d.def
+	return d.base
 }
 
 func (d *errorDefinition) New(ctx context.Context, args ...any) error {
@@ -40,5 +42,10 @@ func (d *errorDefinition) New(ctx context.Context, args ...any) error {
 
 func (d *errorDefinition) With(wrappers ...ErrorWrapper) *errorDefinition {
 	d.wrappers = append(d.wrappers, wrappers...)
+
+	for _, w := range wrappers {
+		d.base = w(d.base)
+	}
+
 	return d
 }
