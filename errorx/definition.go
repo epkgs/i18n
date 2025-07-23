@@ -43,20 +43,19 @@ func newDefinition[E error, Args any](t *i18n.Item, wrapper Wrapper[E]) *Definit
 	// 返回初始化后的errorDefinition对象。
 	return d
 }
-
-// Definition 返回错误定义的基础错误。
-// 该方法允许访问错误定义内部的基础错误，以便在需要时进行进一步处理或检查。
-func (d *Definition[E, Args]) Definition() E {
-	return d.base
-}
-
 func (d *Definition[E, Args]) New(ctx context.Context, args Args) E {
 	err := newError(d.t, ctx, args)
 	return d.wrapper(err)
 }
 
+// Base 返回错误定义的基础错误。
+// 该方法允许访问错误定义内部的基础错误，以便在需要时进行进一步处理或检查。
+func (d *Definition[E, Args]) Base() E {
+	return d.base
+}
+
 func (d *Definition[E, Args]) Code() int {
-	if code, ok := ErrorCode(d.Definition()); ok {
+	if code, ok := ErrorCode(d.Base()); ok {
 		return code
 	}
 	return 1
