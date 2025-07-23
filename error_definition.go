@@ -79,3 +79,17 @@ func (d *errorDefinition) With(wrappers ...ErrorWrapper) *errorDefinition {
 	// 返回修改后的errorDefinition，以支持链式调用和进一步的错误定制。
 	return d
 }
+
+// Code 返回错误定义的代码标识。
+// 如果基础错误实现了 Code() int 方法，则调用该方法获取错误代码。
+// 否则，返回默认错误代码 1。
+// 此方法用于在不同的错误处理场景中提供一致的错误代码识别。
+func (d *errorDefinition) Code() int {
+	// 检查基础错误是否具有 Code() int 方法。
+	if err, ok := d.base.(interface{ Code() int }); ok {
+		// 如果基础错误实现了 Code 方法，则调用并返回该方法的结果。
+		return err.Code()
+	}
+	// 如果基础错误没有实现 Code 方法，则返回默认错误代码 1。
+	return 1
+}
