@@ -127,6 +127,21 @@ func (item *Item) T(ctx context.Context, args ...any) string {
 
 var paser = template.New("i18n")
 
+func parseTemplate(msg string, arg1 any) string {
+
+	// 使用 text/template 解析结构体或 map
+	tmpl, err := paser.Parse(msg)
+	if err != nil {
+		return msg // 解析失败回退
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, arg1); err != nil {
+		return msg // 执行失败回退
+	}
+	return buf.String()
+}
+
 // TTag 根据提供的语言标签数组，选择最佳匹配的语言，并使用参数格式化翻译文本。
 // 支持两种参数形式：
 //   - 顺序参数（如 fmt.Sprintf）：msg="Hello %s" args=["world"]
@@ -153,20 +168,26 @@ func (item *Item) TTag(tags []language.Tag, args ...any) string {
 
 		arg1 := args[0]
 
-		kind := reflect.ValueOf(arg1).Kind()
-		switch kind {
-		case reflect.Struct, reflect.Map:
-			// 使用 text/template 解析结构体或 map
-			tmpl, err := paser.Parse(msg)
-			if err != nil {
-				return msg // 解析失败回退
+		if arg1 == nil {
+			return msg
+		}
+
+		v := reflect.ValueOf(arg1)
+		switch v.Kind() {
+		case reflect.Struct:
+			// 结构体为零值 或 空结构体（无字段），避免模板渲染失败
+			if v.IsZero() || v.NumField() == 0 {
+				return msg
 			}
 
-			var buf bytes.Buffer
-			if err := tmpl.Execute(&buf, arg1); err != nil {
-				return msg // 执行失败回退
+			return parseTemplate(msg, arg1)
+
+		case reflect.Map:
+			if v.Len() == 0 {
+				return msg
 			}
-			return buf.String()
+
+			return parseTemplate(msg, arg1)
 		case reflect.Array, reflect.Slice:
 			return fmt.Sprintf(msg, (arg1.([]any))...)
 		}
