@@ -75,6 +75,10 @@ func (d *Definition[E, Args]) Is(err error) bool {
 	return errors.Is(err, d.base)
 }
 
+func (d *Definition[E, Args]) As(target any) bool {
+	return errors.As(d.base, target)
+}
+
 func (d *Definition[E, Args]) Code() int {
 	if code, ok := ErrorCode(d.base); ok {
 		return code
