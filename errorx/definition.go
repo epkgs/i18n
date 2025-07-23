@@ -30,11 +30,11 @@ func Define[Args any, E error](i18n *i18n.I18n, format string, wrapper Wrapper[E
 //   - i18n是国际化对象，用于处理多语言错误消息。
 //   - format是错误消息的格式字符串，用于动态生成错误消息。
 //   - wrapper是一个错误包装函数，用于将原始错误包装成新的错误类型。
-func DefineSimple[E error](i18n *i18n.I18n, format string, wrapper Wrapper[E]) *simpleDefinition[E] {
+func DefineSimple[E error](i18n *i18n.I18n, format string, wrapper Wrapper[E]) *DefinitionSimple[E] {
 	// 调用 Define 函数创建一个通用的错误定义。
 	def := Define[None](i18n, format, wrapper)
-	// 将通用错误定义封装到 simpleDefinition 结构中并返回。
-	return &simpleDefinition[E]{def}
+	// 将通用错误定义封装到 DefinitionSimple 结构中并返回。
+	return &DefinitionSimple[E]{def}
 }
 
 var WrapSelf = func(err *Error) *Error { return err }
@@ -82,10 +82,10 @@ func (d *Definition[E, Args]) Code() int {
 	return 1
 }
 
-type simpleDefinition[E error] struct {
+type DefinitionSimple[E error] struct {
 	*Definition[E, None]
 }
 
-func (d *simpleDefinition[E]) New(ctx context.Context) E {
+func (d *DefinitionSimple[E]) New(ctx context.Context) E {
 	return d.Definition.New(ctx, None{})
 }
