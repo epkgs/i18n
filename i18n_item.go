@@ -1,9 +1,12 @@
 package i18n
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
+	"text/template"
 
 	"golang.org/x/text/language"
 )
@@ -107,8 +110,14 @@ func (item *Item) match(tags ...language.Tag) (tag language.Tag, exist bool) {
 // Item.T 根据请求的上下文和参数，使用适当的语言进行翻译。
 // 该方法主要目的是根据给定的上下文获取接受的语言列表，并调用 TLang 方法进行翻译。
 // 参数:
+//
 //   - ctx context.Context: 请求的上下文，用于提取接受的语言信息。
-//   - args ...any: 可变参数列表，传递给 TLang 方法，用于指定翻译的具体内容和其他相关信息。
+//
+//   - args ...any: 支持两种参数形式：
+//
+//     1. 顺序参数（如 fmt.Sprintf）：msg="Hello %s" args=["world"]
+//
+//     2. 结构体或 map：msg="Hello {{.Name}}" args=struct{Name string}
 //
 // 返回值:
 //   - string: 返回翻译后的字符串。
@@ -116,40 +125,55 @@ func (item *Item) T(ctx context.Context, args ...any) string {
 	return item.TLang(GetAcceptLanguages(ctx), args...)
 }
 
-// TTag 根据提供的标签数组和可选参数，返回相应的语言字符串。
-// 该方法主要用于根据用户请求的语言标签来选择合适的语言字符串。
-// 参数:
-//
-//	tags []language.Tag: 一个语言标签数组，表示用户请求的语言偏好。
-//	args ...any: 可变参数，用于格式化字符串中的占位符。
-//
-// 返回值:
-//
-//	string: 根据语言标签和可选参数格式化后的字符串。
-func (item *Item) TTag(tags []language.Tag, args ...any) string {
-	var lang string
+var paser = template.New("i18n")
 
-	// 尝试匹配提供的语言标签，如果找到匹配的标签，则使用它。
+// TTag 根据提供的语言标签数组，选择最佳匹配的语言，并使用参数格式化翻译文本。
+// 支持两种参数形式：
+//   - 顺序参数（如 fmt.Sprintf）：msg="Hello %s" args=["world"]
+//   - 结构体或 map：msg="Hello {{.Name}}" args=struct{Name string}
+func (item *Item) TTag(tags []language.Tag, args ...any) string {
+	// 匹配语言
+	var lang string
 	if tag, exist := item.match(tags...); exist {
 		lang = tag.String()
 	} else {
-		// 如果没有找到匹配的语言标签，则使用默认语言。
 		lang = item.I18n.opts.DefaultLang
 	}
 
-	// 将语言标签中的连字符替换为下划线，以适应某些特定的语言代码格式。
+	// 格式化语言键
 	key := strings.Replace(lang, "-", "_", -1)
-
-	// 根据语言标签获取对应的翻译消息。
 	msg := item.trans[key]
 
-	// 如果提供了可选参数，则使用这些参数格式化消息。
-	if len(args) > 0 {
-		return fmt.Sprintf(msg, args...)
+	// 无参数直接返回原始文本
+	if len(args) == 0 {
+		return msg
 	}
 
-	// 如果没有提供可选参数，则直接返回翻译消息。
-	return msg
+	if len(args) == 1 {
+
+		arg1 := args[0]
+
+		kind := reflect.ValueOf(arg1).Kind()
+		switch kind {
+		case reflect.Struct, reflect.Map:
+			// 使用 text/template 解析结构体或 map
+			tmpl, err := paser.Parse(msg)
+			if err != nil {
+				return msg // 解析失败回退
+			}
+
+			var buf bytes.Buffer
+			if err := tmpl.Execute(&buf, arg1); err != nil {
+				return msg // 执行失败回退
+			}
+			return buf.String()
+		case reflect.Array, reflect.Slice:
+			return fmt.Sprintf(msg, (arg1.([]any))...)
+		}
+	}
+
+	// 否则使用 fmt.Sprintf 处理顺序参数
+	return fmt.Sprintf(msg, args...)
 }
 
 // TLang 根据给定的语言切片获取与之匹配的语言标签。

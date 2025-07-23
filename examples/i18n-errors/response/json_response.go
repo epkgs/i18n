@@ -1,6 +1,8 @@
 package response
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,14 +17,17 @@ func Fail(c *gin.Context, err error) {
 
 	httpStatus := 500
 	{
-		if e, ok := err.(interface{ HttpStatus() int }); ok {
+
+		var e interface{ HttpStatus() int }
+		if errors.As(err, &e) {
 			httpStatus = e.HttpStatus()
 		}
 	}
 
 	code := 1
 	{
-		if e, ok := err.(interface{ Code() int }); ok {
+		var e interface{ Code() int }
+		if errors.As(err, &e) {
 			code = e.Code()
 		}
 	}

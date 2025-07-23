@@ -6,12 +6,12 @@ import (
 	"github.com/epkgs/i18n"
 )
 
-var userErrors = i18n.NewCatalog("user")
+var userI18n = i18n.NewCatalog("user")
 
 var (
-	ErrUserNotExit = userErrors.DefineError("User %s not exist").WithStatus(1, http.StatusNotFound)
+	ErrUserNotExit = defineErr[struct{ Name string }](userI18n, 1, "User {{.Name}} not exist", http.StatusNotFound)
 )
 
 func init() {
-	userErrors.LoadTranslations()
+	userI18n.LoadTranslations()
 }

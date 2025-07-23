@@ -1,17 +1,19 @@
-package i18n
+package errorx
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/epkgs/i18n"
 )
 
 // Error 结构体用于封装一个错误的详细信息。
 // 它不仅包含原始错误（cause），还可以包括错误发生的上下文（ctx）和相关参数（args），
 // 以便于在日志或错误处理中提供更多的错误细节。
 type Error struct {
-	t *Item
+	t *i18n.Item
 
 	ctx  context.Context
 	args []any
@@ -19,13 +21,11 @@ type Error struct {
 	cause error // 原始错误，即引发Error结构体封装的最初错误。
 }
 
-var _ ErrorWrapper = (*Error)(nil)
-
 // newError 创建并返回一个新的Error对象。
 // 该函数接收一个Item指针t、一个context.Context类型的ctx，以及一个可变参数args。
 // 参数t用于指定错误相关的项，ctx用于传递请求范围的上下文信息，args用于传递额外的错误信息。
 // 返回值是一个Error对象，包含了传入的t、ctx和args信息。
-func newError(t *Item, ctx context.Context, args ...any) *Error {
+func newError(t *i18n.Item, ctx context.Context, args ...any) *Error {
 	return &Error{
 		t:    t,
 		ctx:  ctx,
@@ -38,6 +38,7 @@ func newError(t *Item, ctx context.Context, args ...any) *Error {
 // 如果包含上下文信息，则使用该上下文信息和任何额外的参数(args)来获取本地化错误信息。
 // 如果没有上下文信息，则使用一个空白的上下文背景和额外的参数来获取默认的本地化错误信息。
 func (e *Error) Error() string {
+
 	// 检查是否存在上下文信息
 	if e.ctx != nil {
 		// 使用给定的上下文和参数获取本地化错误信息
@@ -48,21 +49,12 @@ func (e *Error) Error() string {
 	return e.t.T(context.Background(), e.args...)
 }
 
-// Error.Cause 返回错误的原因。
-// 该方法允许错误处理机制能够获取到原始错误信息，从而进行更精确的错误处理或日志记录。
-// 返回值:
-//
-//	error: 错误的原因。
-func (e *Error) Cause() error {
-	return e.cause
-}
-
 // Unwrap 返回错误的底层原因（cause）。
 // 此方法允许错误处理机制能够访问Error类型内部封装的实际错误。
 // 参数: 无
 // 返回值: error，代表错误的底层原因。
 func (e *Error) Unwrap() error {
-	return errors.Unwrap(e.cause)
+	return e.cause
 }
 
 // Wrap 设置Error类型的cause字段
