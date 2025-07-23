@@ -14,23 +14,23 @@ import (
 // 返回值:
 //
 //	返回一个新的错误定义对象，用于进一步的错误处理和国际化支持。
-func (i18n *I18n) DefineError(format string, wrappers ...ErrorWrapper) *errorDefinition {
+func (i18n *I18n) DefineError(format string, wrappers ...ErrorWrapFunc) *errorDefinition {
 	return newErrorDefinition(i18n.New(format), wrappers...)
 }
 
-type ErrorWrapper func(error) error
+type ErrorWrapFunc func(error) error
 
 type errorDefinition struct {
 	t        *Item // i18n item
 	base     error
-	wrappers []ErrorWrapper
+	wrappers []ErrorWrapFunc
 }
 
 // newErrorDefinition 创建并初始化一个新的错误定义对象。
 // 该函数接收一个Item类型的参数t，以及一个可变长参数wrappers，后者是由ErrorWrapper接口类型的对象组成。
 // Item类型和ErrorWrapper接口的具体定义未在上下文中给出，因此这里不做具体说明。
 // 函数返回一个指向errorDefinition类型的指针。
-func newErrorDefinition(t *Item, wrappers ...ErrorWrapper) *errorDefinition {
+func newErrorDefinition(t *Item, wrappers ...ErrorWrapFunc) *errorDefinition {
 	// 创建一个errorDefinition类型的对象并对其进行初始化。
 	def := &errorDefinition{
 		t:        t,
@@ -52,7 +52,7 @@ func (d *errorDefinition) Base() error {
 
 // New 创建并返回一个新的错误对象，该对象基于当前错误定义，并根据上下文和参数进行定制。
 // 此函数允许在给定的上下文和参数下，对错误进行包装和处理，以便在不同的场景下提供更丰富的错误信息。
-func (d *errorDefinition) New(ctx context.Context, args ...any) error {
+func (d *errorDefinition) New(ctx context.Context, args ...any) ErrorWrapper {
 	// 创建初始错误对象，基于当前错误定义的类型、上下文和可变参数。
 	var err error = newError(d.t, ctx, args...)
 	// 遍历当前错误定义的所有错误包装器，对初始错误对象进行逐层包装。
@@ -60,13 +60,13 @@ func (d *errorDefinition) New(ctx context.Context, args ...any) error {
 		err = wrapper(err)
 	}
 
-	return err
+	return err.(ErrorWrapper)
 }
 
 // With为errorDefinition添加错误包装器，以定制错误处理行为。
 // 该方法接收一个或多个ErrorWrapper接口实现，将它们附加到errorDefinition的wrappers列表中，
 // 并依次用这些包装器包装base错误，以实现错误的层次化管理和处理。
-func (d *errorDefinition) With(wrappers ...ErrorWrapper) *errorDefinition {
+func (d *errorDefinition) With(wrappers ...ErrorWrapFunc) *errorDefinition {
 	// 将新的包装器附加到已有的包装器列表中，以便后续处理。
 	d.wrappers = append(d.wrappers, wrappers...)
 

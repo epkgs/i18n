@@ -19,6 +19,8 @@ type Error struct {
 	cause error // 原始错误，即引发Error结构体封装的最初错误。
 }
 
+var _ ErrorWrapper = (*Error)(nil)
+
 // newError 创建并返回一个新的Error对象。
 // 该函数接收一个Item指针t、一个context.Context类型的ctx，以及一个可变参数args。
 // 参数t用于指定错误相关的项，ctx用于传递请求范围的上下文信息，args用于传递额外的错误信息。
@@ -46,21 +48,31 @@ func (e *Error) Error() string {
 	return e.t.T(context.Background(), e.args...)
 }
 
+// Error.Cause 返回错误的原因。
+// 该方法允许错误处理机制能够获取到原始错误信息，从而进行更精确的错误处理或日志记录。
+// 返回值:
+//
+//	error: 错误的原因。
+func (e *Error) Cause() error {
+	return e.cause
+}
+
 // Unwrap 返回错误的底层原因（cause）。
 // 此方法允许错误处理机制能够访问Error类型内部封装的实际错误。
 // 参数: 无
 // 返回值: error，代表错误的底层原因。
 func (e *Error) Unwrap() error {
-	return e.cause
+	return errors.Unwrap(e.cause)
 }
 
-// WithCause 设置Error类型的cause字段
+// Wrap 设置Error类型的cause字段
 // 该方法用于将一个错误标记为另一个错误的直接原因，便于错误追踪和处理
 // 参数:
 //
 //	err error: 导致当前错误的原始错误，不能为空
-func (e *Error) WithCause(err error) {
+func (e *Error) Wrap(err error) error {
 	e.cause = err
+	return e
 }
 
 // Is 检查两个错误是否相等。
