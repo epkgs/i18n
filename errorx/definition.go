@@ -50,7 +50,7 @@ func (d *Definition[E, Args]) New(ctx context.Context, args Args) E {
 	return d.wrapper(err)
 }
 
-func (d *Definition[E, Args]) IsError(err error) bool {
+func (d *Definition[E, Args]) Is(err error) bool {
 	return errors.Is(err, d.base)
 }
 
