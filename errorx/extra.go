@@ -125,7 +125,7 @@ func (e *TraceableError) Wrap(err error) error {
 	return e
 }
 
-func GetTraceID(err error) (string, bool) {
+func TraceID(err error) (string, bool) {
 	var tracer interface{ TraceID() string }
 	if errors.As(err, &tracer) {
 		return tracer.TraceID(), true
