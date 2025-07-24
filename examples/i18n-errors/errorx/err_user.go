@@ -9,7 +9,7 @@ import (
 var userI18n = i18n.NewCatalog("user")
 
 var (
-	ErrUserNotExit = defineErr[struct{ Name string }](userI18n, 1, "User {{.Name}} not exist", http.StatusNotFound)
+	ErrUserNotExit = Definef[struct{ Name string }](userI18n, 1, "User {{.Name}} not exist", http.StatusNotFound)
 )
 
 func init() {
