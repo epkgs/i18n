@@ -98,15 +98,13 @@ func (i18n *I18n) LoadTranslations() {
 	// 读取资源路径下的所有目录
 	rd, err := os.ReadDir(i18n.opts.ResourcesPath)
 	if err != nil {
-		// 如果读取过程中发生错误，记录错误信息并返回
-		log.Printf("read locales path error: %v", err)
-		// 读取出错则直接返回
+		// 目录不存在，直接返回
 		return
 	}
 
 	// 遍历资源路径下的所有目录和文件
 	for _, f := range rd {
-		// 只处理目录
+		// 只处理目录，目录名为 lang ID
 		if f.IsDir() {
 			// 解析每个语言目录中的翻译文件
 			trans, err := i18n.parser.Parse(i18n.opts.ResourcesPath, f.Name(), i18n.name)
