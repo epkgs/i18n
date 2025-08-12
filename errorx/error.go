@@ -38,11 +38,17 @@ func newError(t *i18n.Item, ctx context.Context, args ...any) *Error {
 // 如果包含上下文信息，则使用该上下文信息和任何额外的参数(args)来获取本地化错误信息。
 // 如果没有上下文信息，则使用一个空白的上下文背景和额外的参数来获取默认的本地化错误信息。
 func (e *Error) Error() string {
+	return e.Translate(e.ctx)
+}
 
+// Translate 将错误信息翻译为本地化字符串
+// ctx: 上下文信息，用于获取本地化配置，如果为nil则使用默认背景上下文
+// 返回值: 翻译后的本地化错误信息字符串
+func (e *Error) Translate(ctx context.Context) string {
 	// 检查是否存在上下文信息
-	if e.ctx != nil {
+	if ctx != nil {
 		// 使用给定的上下文和参数获取本地化错误信息
-		return e.t.T(e.ctx, e.args...)
+		return e.t.T(ctx, e.args...)
 	}
 
 	// 如果没有上下文信息，使用空白上下文背景获取默认本地化错误信息
