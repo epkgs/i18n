@@ -8,13 +8,13 @@ import (
 )
 
 func main() {
-	userI18n := i18n.NewCatalog("user", func(opts *i18n.Options) {
+	userI18n := i18n.NewBundle("user", func(opts *i18n.Options) {
 		opts.DefaultLang = "en"
 	})
 
-	UserNotExist := userI18n.New("User %s not exist")
+	UserNotExist := userI18n.Define("User %s not exist")
 
-	i18n.LoadTranslations(userI18n)
+	i18n.Load(userI18n)
 
 	fmt.Printf("Default: %s\n", UserNotExist.T(context.Background(), "test"))
 

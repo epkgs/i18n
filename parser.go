@@ -10,9 +10,8 @@ import (
 type Parser interface {
 	// parse translation file
 	// dir: resources directory
-	// lang: language code
 	// name: translation file name without extension
-	Parse(dir, lang, name string) (map[string]string, error)
+	Parse(dir, name string) (map[string]string, error)
 }
 
 type JsonParser struct{}
@@ -23,15 +22,14 @@ type JsonParser struct{}
 //
 // 参数:
 //   - dir: 文件所在的目录路径。
-//   - lang: 语言代码，用于指定语言特定的目录。
 //   - name: JSON 文件的基础名，不包括扩展名。
 //
 // 返回值:
 //   - map[string]string: 包含解析后数据的映射。
 //   - error: 如果解析过程中发生错误，则返回该错误。
-func (p *JsonParser) Parse(dir, lang, name string) (map[string]string, error) {
+func (p *JsonParser) Parse(dir, name string) (map[string]string, error) {
 	// 构造文件路径。
-	filePath := path.Join(dir, lang, name+".json")
+	filePath := path.Join(dir, name+".json")
 
 	// 检查文件是否存在，如果不存在则返回空映射和nil错误。
 	if !isFileExist(filePath) {

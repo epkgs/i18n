@@ -2,12 +2,12 @@ package locales
 
 import "github.com/epkgs/i18n"
 
-var userI18n = i18n.NewCatalog("user")
+var userI18n = i18n.NewBundle("user")
 
 var (
-	UserNotExist = userI18n.New("User %s not exist")
+	UserNotExist = userI18n.Define("User %s not exist")
 )
 
 func init() {
-	i18n.LoadTranslations(userI18n)
+	i18n.Load(userI18n)
 }
