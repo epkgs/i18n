@@ -9,7 +9,7 @@ type definition[Args any] struct {
 	opts []DefineOption
 }
 
-type DefineOption func(e I18nError)
+type DefineOption func(e I18nError) I18nError
 
 func Define[Args any](i18n *i18n.Bundle, format string, opts ...DefineOption) Definition[Args] {
 	return &definition[Args]{

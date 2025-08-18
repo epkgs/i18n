@@ -17,8 +17,10 @@ func NewHttpError(code, httpStatus int, format fmt.Stringer) I18nError {
 	return err
 }
 
-func (e *Error) WithCode(code int) {
-	e.Set("code", code)
+func (e *Error) WithCode(code int) I18nError {
+	err := e.clone()
+	err.Set("code", code)
+	return err
 }
 
 func (e *Error) Code() int {
@@ -29,8 +31,10 @@ func (e *Error) Code() int {
 	return CodeDefault
 }
 
-func (e *Error) WithHttpStatus(httpStatus int) {
-	e.Set("httpStatus", httpStatus)
+func (e *Error) WithHttpStatus(httpStatus int) I18nError {
+	err := e.clone()
+	err.Set("httpStatus", httpStatus)
+	return err
 }
 
 func (e *Error) HttpStatus() int {

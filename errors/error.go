@@ -39,9 +39,31 @@ func (e *Error) Translate(ctx context.Context) string {
 	return e.String()
 }
 
+func (e *Error) clone() *Error {
+	err := &Error{
+		msg:   e.msg,
+		extra: make(map[string]any, len(e.extra)),
+		cause: e.cause,
+		stack: e.stack,
+	}
+
+	for i, v := range e.extra {
+		err.extra[i] = v
+	}
+
+	return err
+}
+
+func (e *Error) WithStack() I18nError {
+	err := e.clone()
+	err.stack = callers()
+	return err
+}
+
 func (e *Error) Wrap(cause error) I18nError {
-	e.cause = cause
-	return e
+	err := e.clone()
+	err.cause = cause
+	return err
 }
 
 func (e *Error) Cause() error { return e.cause }
@@ -53,9 +75,13 @@ func (e *Error) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v\n", e.Cause())
+			if e.cause != nil {
+				fmt.Fprintf(s, "%+v\n", e.cause)
+			}
 			io.WriteString(s, e.String())
-			e.stack.Format(s, verb)
+			if e.stack != nil {
+				e.stack.Format(s, verb)
+			}
 			return
 		}
 		fallthrough

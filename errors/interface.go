@@ -25,15 +25,16 @@ type Storage interface {
 type I18nError interface {
 	error
 	Translable
+	WithStack() I18nError
 	Wrap(cause error) I18nError
 	Cause() error
 	Unwrap() error
 	// Format(s fmt.State, verb rune)
 	Is(err error) bool
 	Storage
-	WithCode(code int)
+	WithCode(code int) I18nError
 	Coder
-	WithHttpStatus(httpStatus int)
+	WithHttpStatus(httpStatus int) I18nError
 	HttpStatuser
 }
 
