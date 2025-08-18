@@ -8,14 +8,6 @@ type Translable interface {
 	Translate(ctx context.Context) string
 }
 
-type Coder interface {
-	Code() int
-}
-
-type HttpStatuser interface {
-	HttpStatus() int
-}
-
 type Storage interface {
 	Set(key string, value any)
 	Get(key string) (any, bool)
@@ -32,10 +24,6 @@ type I18nError interface {
 	// Format(s fmt.State, verb rune)
 	Is(err error) bool
 	Storage
-	WithCode(code int) I18nError
-	Coder
-	WithHttpStatus(httpStatus int) I18nError
-	HttpStatuser
 }
 
 type Definition[Args any] interface {
