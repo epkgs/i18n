@@ -5,7 +5,7 @@ import (
 	"github.com/epkgs/i18n/errors"
 )
 
-func Define[Args any](i18n *i18n.Bundle, format string, code, httpStatus int) *errors.Definition[Args] {
+func Define[Args any](i18n *i18n.Bundle, format string, code, httpStatus int) errors.Definition[Args] {
 	return errors.Define[Args](i18n, format, func(e errors.I18nError) {
 		e.WithCode(code)
 		e.WithHttpStatus(httpStatus)

@@ -36,3 +36,7 @@ type I18nError interface {
 	WithHttpStatus(httpStatus int)
 	HttpStatuser
 }
+
+type Definition[Args any] interface {
+	New(args Args) I18nError
+}
