@@ -53,8 +53,8 @@ func NewBundle(name string, fn ...OptionsFunc) *Bundle {
 	}
 }
 
-func (b *Bundle) Define(formst string) *Definition {
-	return newDefinition(b, formst)
+func (b *Bundle) Sprintf(format string, args ...any) *Stringer {
+	return newStringer(b, format, args...)
 }
 
 func (b *Bundle) getTransTxt(tags []language.Tag, orig string) string {
@@ -197,8 +197,4 @@ func Load(bundle ...*Bundle) {
 		// 调用当前I18n实例的LoadTranslations方法来加载翻译资源。
 		b.Load()
 	}
-}
-
-func Definef[Args any](bundle *Bundle, format string) *DefinitionF[Args] {
-	return newDefinitionF[Args](bundle, format)
 }

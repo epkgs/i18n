@@ -12,12 +12,13 @@ func main() {
 		opts.DefaultLang = "en"
 	})
 
-	UserNotExist := userI18n.Define("User %s not exist")
+	userI18n.Load()
 
-	i18n.Load(userI18n)
+	str := userI18n.Sprintf("User %s not exist", "test")
 
-	fmt.Printf("Default: %s\n", UserNotExist.T(context.Background(), "test"))
+	fmt.Printf("Default: %s\n", str)
 
 	ctx := i18n.WithAcceptLanguages(context.Background(), "zh_CN")
-	fmt.Printf("Translation [%s]: %s\n", "zh_CN", UserNotExist.T(ctx, "test"))
+
+	fmt.Printf("Translation [%s]: %s\n", "zh_CN", str.Translate(ctx))
 }
