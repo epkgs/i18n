@@ -7,6 +7,6 @@ import (
 )
 
 var (
-	// ErrUserNotExit = Definef[string](locales.User, "User %s not exist", 1, http.StatusNotFound)
-	ErrUserNotExit = Definef[struct{ Name string }](locales.User, "User {{.Name}} not exist", 1, http.StatusNotFound)
+	// ErrUserNotExit = Define[string](locales.User, "User %s not exist", 1, http.StatusNotFound)
+	ErrUserNotExit = Define[struct{ Name string }](locales.User, "User {{.Name}} not exist", 1, http.StatusNotFound)
 )
