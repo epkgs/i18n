@@ -11,7 +11,7 @@ type Definition[Args any] struct {
 
 type DefineOption func(e I18nError)
 
-func Definef[Args any](i18n *i18n.Bundle, format string, opts ...DefineOption) *Definition[Args] {
+func Define[Args any](i18n *i18n.Bundle, format string, opts ...DefineOption) *Definition[Args] {
 	return &Definition[Args]{
 		i18n:   i18n,
 		format: format,
