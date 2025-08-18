@@ -63,6 +63,7 @@ func (e *Error) WithStack() I18nError {
 func (e *Error) Wrap(cause error) I18nError {
 	err := e.clone()
 	err.cause = cause
+	err.stack = callers()
 	return err
 }
 
