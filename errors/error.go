@@ -21,22 +21,6 @@ type Error struct {
 	stack *stack
 }
 
-func New(format fmt.Stringer) *Error {
-	return Errorf(format)
-}
-
-func Errorf(format fmt.Stringer, args ...any) *Error {
-
-	err := &Error{
-		msg:   format,
-		args:  args,
-		extra: map[string]any{},
-		stack: callers(),
-	}
-
-	return err
-}
-
 func (e *Error) String() string {
 	return e.msg.String()
 }
