@@ -10,8 +10,8 @@ var (
 	HttpStatusDefault = 500
 )
 
-func NewHttpError(code, httpStatus int, format fmt.Stringer, args ...any) I18nError {
-	err := Errorf(format, args...)
+func NewHttpError(code, httpStatus int, format fmt.Stringer) I18nError {
+	err := New(format)
 	err.WithCode(code)
 	err.WithHttpStatus(httpStatus)
 	return err

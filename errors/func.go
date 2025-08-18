@@ -15,19 +15,11 @@ var (
 )
 
 func New(format fmt.Stringer) I18nError {
-	return Errorf(format)
-}
-
-func Errorf(format fmt.Stringer, args ...any) I18nError {
-
-	err := &Error{
+	return &Error{
 		msg:   format,
-		args:  args,
 		extra: map[string]any{},
 		stack: callers(),
 	}
-
-	return err
 }
 
 func WithStack(err error) I18nError {
@@ -38,8 +30,4 @@ func WithStack(err error) I18nError {
 		return e
 	}
 	return New(String(err.Error()))
-}
-
-func Wrapf(err error, format fmt.Stringer, args ...any) I18nError {
-	return Errorf(format, args...).Wrap(err)
 }

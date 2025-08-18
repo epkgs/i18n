@@ -14,7 +14,6 @@ func (s String) String() string {
 
 type Error struct {
 	msg   fmt.Stringer
-	args  []any
 	extra map[string]any
 
 	cause error
