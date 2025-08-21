@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"context"
 	"log"
 	"os"
 	"path/filepath"
@@ -53,8 +54,22 @@ func NewBundle(name string, fn ...OptionsFunc) *Bundle {
 	}
 }
 
-func (b *Bundle) Sprintf(format string, args ...any) *Stringer {
-	return newStringer(b, format, args...)
+func (b *Bundle) translate(ctx context.Context, format string, args ...any) string {
+	langs := GetAcceptLanguages(ctx)
+
+	// 初始化一个语言标签切片，用于存储解析后的语言标签。
+	tags := []language.Tag{}
+	// 遍历输入的语言代码切片，尝试解析每个语言代码为语言标签。
+	for _, l := range langs {
+		// 尝试解析当前语言代码为语言标签。如果解析成功，则将标签添加到标签切片中。
+		if t := parseLanguageTag(l); t != nil {
+			tags = append(tags, *t)
+		}
+	}
+
+	translated := b.getTransTxt(tags, format)
+
+	return parse(translated, args...)
 }
 
 func (b *Bundle) getTransTxt(tags []language.Tag, orig string) string {
@@ -119,8 +134,6 @@ func (b *Bundle) Name() string {
 }
 
 // AddTrans 添加或更新指定语言的翻译文本。
-// 如果默认文本(defaultText)在翻译项中已存在，则为其添加新的语言翻译；
-// 否则，将创建一个新的翻译项并添加该语言的翻译。
 // 参数:
 //
 //	lang: 语言标识符，用于指定翻译所对应的语言。
@@ -182,19 +195,5 @@ func (b *Bundle) Load() {
 				b.AddTrans(folder, key, value)
 			}
 		}
-	}
-}
-
-// Load 加载翻译资源。
-// 该函数接受一个或多个I18n实例作为参数，并调用每个实例的LoadTranslations方法来加载翻译资源。
-// 这使得在程序启动时可以预先加载多个语言环境的翻译资源，从而确保在需要时能够快速响应。
-// 参数:
-//
-//	bundle ...*Bundle - 一个或多个I18n实例，用于指定需要加载翻译资源的语言环境。
-func Load(bundle ...*Bundle) {
-	// 遍历每个传入的I18n实例。
-	for _, b := range bundle {
-		// 调用当前I18n实例的LoadTranslations方法来加载翻译资源。
-		b.Load()
 	}
 }

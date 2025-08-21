@@ -59,7 +59,7 @@ func parseLanguageTag(lang string) *language.Tag {
 	return languageTagCache[lang]
 }
 
-func format(transleted string, args ...any) string {
+func parse(transleted string, args ...any) string {
 
 	if len(args) == 0 {
 		return transleted
@@ -103,7 +103,7 @@ func format(transleted string, args ...any) string {
 			for i := 0; i < v.Len(); i++ {
 				slices[i] = v.Index(i).Interface()
 			}
-			return format(transleted, slices...)
+			return parse(transleted, slices...)
 
 		default:
 			return fmt.Sprintf(transleted, arg1)

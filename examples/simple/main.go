@@ -5,20 +5,20 @@ import (
 	"fmt"
 
 	"github.com/epkgs/i18n"
+	"github.com/epkgs/i18n/examples/simple/locales"
 )
 
+//go:generate go run ../../geni18n extract
+
 func main() {
-	userI18n := i18n.NewBundle("user", func(opts *i18n.Options) {
-		opts.DefaultLang = "en"
-	})
 
-	userI18n.Load()
+	ctx := context.Background()
 
-	str := userI18n.Sprintf("User %s not exist", "test")
+	userNotExist := i18n.Definef[string](locales.User, "User %s not exist")
 
-	fmt.Printf("Default: %s\n", str)
+	fmt.Printf("Default: %s\n", userNotExist.T(ctx, "test"))
 
-	ctx := i18n.WithAcceptLanguages(context.Background(), "zh_CN")
+	ctx = i18n.WithAcceptLanguages(ctx, "zh_CN")
 
-	fmt.Printf("Translation [%s]: %s\n", "zh_CN", str.Translate(ctx))
+	fmt.Printf("Translation [zh_CN]: %s\n", userNotExist.T(ctx, "test"))
 }
