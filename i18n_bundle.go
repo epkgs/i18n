@@ -2,49 +2,61 @@ package i18n
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
+	"github.com/epkgs/i18n/errors"
 	"golang.org/x/text/language"
 )
 
+// Options represents configuration options for the internationalization bundle
 type Options struct {
 	DefaultLang   string // default language, default is "en"
 	ResourcesPath string // resources path, default is "locales"
 }
 
+// OptionsFunc is a function type used to configure Options
 type OptionsFunc func(opts *Options)
 
+// Bundle represents an internationalization bundle containing translations for different languages
 type Bundle struct {
 	opts      Options
 	name      string
-	parser    Parser
-	trans     map[string]map[string]string // 语言标识符 -> 默认文本 -> 翻译文本
+	trans     map[string]map[string]string // language identifier -> default text -> translated text
 	tranLangs []language.Tag
 	matcher   language.Matcher
 }
 
-// NewBundle 创建并返回一个新的I18n实例。
-// 它接受一个名称参数和一个可变参数的OptionsFunc函数切片，
-// 用于配置I18n实例的选项。
+var bundleCache = sync.Map{}
+
+// NewBundle creates and returns a new internationalization bundle instance
+// It accepts a name parameter and variadic OptionsFunc functions to configure the bundle options
 func NewBundle(name string, fn ...OptionsFunc) *Bundle {
-	// 初始化默认的选项配置。
+	// Initialize default options
 	opts := Options{
 		DefaultLang:   "en",
 		ResourcesPath: "locales",
 	}
 
-	// 遍历可变参数中的函数，应用到选项配置上。
+	// Apply option functions to the options
 	for _, f := range fn {
 		f(&opts)
 	}
 
-	// 创建并返回新的I18n实例。
-	return &Bundle{
-		opts:   opts,
-		name:   name,
-		parser: new(JsonParser),
+	key := opts.ResourcesPath + "." + name
+
+	if v, ok := bundleCache.Load(key); ok {
+		return v.(*Bundle)
+	}
+
+	// Create and return new bundle instance
+	b := &Bundle{
+		opts: opts,
+		name: name,
 		trans: map[string]map[string]string{
 			formatLangID(opts.DefaultLang): make(map[string]string),
 		},
@@ -52,16 +64,41 @@ func NewBundle(name string, fn ...OptionsFunc) *Bundle {
 			language.MustParse(opts.DefaultLang),
 		},
 	}
+
+	b.load()
+
+	bundleCache.Store(b.opts.ResourcesPath+"."+b.name, b)
+
+	return b
 }
 
+// Str creates and returns a new Stringer object for handling internationalized strings
+//   - txt: the original text to be translated
+//   - args: arguments used to replace placeholders in the text
+//
+// Returns a Stringer interface that can handle internationalization
+func (b *Bundle) Str(txt string, args ...any) Stringer {
+	return newString(b, txt, args...)
+}
+
+// Err creates and returns an internationalizable error object
+//   - txt: the original error text to be translated
+//   - args: arguments used to replace placeholders in the text
+//
+// Returns an errors.Error interface that includes internationalization capabilities
+func (b *Bundle) Err(txt string, args ...any) errors.Error {
+	return errors.New(b.Str(txt, args...))
+}
+
+// translate translates the given format string based on language preferences in the context
 func (b *Bundle) translate(ctx context.Context, format string, args ...any) string {
 	langs := GetAcceptLanguages(ctx)
 
-	// 初始化一个语言标签切片，用于存储解析后的语言标签。
+	// Initialize a slice to store parsed language tags
 	tags := []language.Tag{}
-	// 遍历输入的语言代码切片，尝试解析每个语言代码为语言标签。
+	// Iterate through language codes and attempt to parse them into language tags
 	for _, l := range langs {
-		// 尝试解析当前语言代码为语言标签。如果解析成功，则将标签添加到标签切片中。
+		// Try to parse the current language code into a language tag. If successful, add it to the tags slice
 		if t := parseLanguageTag(l); t != nil {
 			tags = append(tags, *t)
 		}
@@ -72,10 +109,11 @@ func (b *Bundle) translate(ctx context.Context, format string, args ...any) stri
 	return parse(translated, args...)
 }
 
+// getTransTxt retrieves the translated text for the given original text based on language tags
 func (b *Bundle) getTransTxt(tags []language.Tag, orig string) string {
 	txt := orig
 
-	// 匹配语言
+	// Match language
 	var lang string
 	if tag, exist := b.match(tags...); exist {
 		lang = tag.String()
@@ -83,7 +121,7 @@ func (b *Bundle) getTransTxt(tags []language.Tag, orig string) string {
 		lang = b.opts.DefaultLang
 	}
 
-	// 格式化语言键
+	// Format language key
 	lang = formatLangID(lang)
 
 	trans, exist := b.trans[lang]
@@ -101,6 +139,7 @@ func (b *Bundle) getTransTxt(tags []language.Tag, orig string) string {
 	return txt
 }
 
+// match finds the best matching language tag from the provided tags
 func (b *Bundle) match(tags ...language.Tag) (tag language.Tag, exist bool) {
 	if len(tags) == 0 {
 		return language.Und, false
@@ -115,6 +154,7 @@ func (b *Bundle) match(tags ...language.Tag) (tag language.Tag, exist bool) {
 	return b.tranLangs[i], true
 }
 
+// getMatcher creates and returns a language matcher if not already created
 func (b *Bundle) getMatcher() language.Matcher {
 	if b.matcher == nil {
 		b.matcher = language.NewMatcher(b.tranLangs)
@@ -122,35 +162,25 @@ func (b *Bundle) getMatcher() language.Matcher {
 	return b.matcher
 }
 
-// Name 返回I18n实例的名称。
-//
-// 该方法没有输入参数。
-//
-// 返回值:
-//
-//	string: I18n实例的名称。
+// Name returns the name of the bundle instance
 func (b *Bundle) Name() string {
 	return b.name
 }
 
-// AddTrans 添加或更新指定语言的翻译文本。
-// 参数:
+// WithTranslations manually adds translation texts for a specified language
+//   - lang: language identifier for the translation
+//   - defaultText: default text as a unique identifier for the translation entry
+//   - transText: translated text for the defaultText in the specified language
 //
-//	lang: 语言标识符，用于指定翻译所对应的语言。
-//	defaultText: 默认文本，作为翻译项的唯一标识。
-//	transText: 翻译文本，是defaultText在指定语言下的翻译。
-//
-// 返回值:
-//
-//	*Bundle: 返回I18n实例指针，支持链式调用。
-func (b *Bundle) AddTrans(lang string, defaultText, transText string) *Bundle {
+// Returns the bundle instance pointer to support method chaining
+func (b *Bundle) WithTranslations(lang string, trans map[string]string) *Bundle {
 
-	// 格式化 lang
+	// Format language
 	lang = formatLangID(lang)
-	// 检查该语言是否已初始化
+	// Check if the language has been initialized
 	if _, exist := b.trans[lang]; !exist {
 
-		if langTag, err := language.Parse(lang); err == nil { // 尝试解析语言代码，如果解析成功，则添加该语言标签并重置匹配器。
+		if langTag, err := language.Parse(lang); err == nil { // Try to parse the language code, if successful, add the language tag and reset the matcher
 			b.tranLangs = append(b.tranLangs, langTag)
 			b.matcher = nil
 		}
@@ -158,42 +188,75 @@ func (b *Bundle) AddTrans(lang string, defaultText, transText string) *Bundle {
 		b.trans[lang] = make(map[string]string)
 	}
 
-	b.trans[lang][defaultText] = transText
+	for k, v := range trans {
+		b.trans[lang][k] = v
+	}
 
-	// 返回I18n实例指针，支持链式调用
+	// Return bundle instance pointer to support method chaining
 	return b
 }
 
-// Load 加载翻译资源
-// 此函数读取指定资源路径下的所有目录，每个目录代表一种语言
-// 对于每个语言目录，它会解析其中的翻译文件，并将翻译结果添加到I18n实例中
-func (b *Bundle) Load() {
-	// 读取资源路径下的所有目录
+// Reload reloads all translation resources from the filesystem.
+// It clears the existing translations and language tags, then loads
+// all translations again by calling the load method.
+func (b *Bundle) Reload() {
+	b.trans = make(map[string]map[string]string)
+	b.tranLangs = []language.Tag{}
+
+	b.load()
+}
+
+// load loads translation resources
+// This function reads all directories under the specified resource path, where each directory represents a language
+// For each language directory, it parses the translation files and adds the translation results to the bundle instance
+func (b *Bundle) load() {
+	// Read all directories under the resource path
 	rd, err := os.ReadDir(b.opts.ResourcesPath)
 	if err != nil {
-		// 目录不存在，直接返回
+		// Directory does not exist, return directly
 		return
 	}
 
-	// 遍历资源路径下的所有目录和文件
+	// Iterate through all directories and files under the resource path
 	for _, f := range rd {
-		// 只处理目录，目录名为 lang ID
+		// Only process directories, where directory names are lang IDs
 		if f.IsDir() {
 
 			folder := f.Name()
 
-			// 解析每个语言目录中的翻译文件
-			trans, err := b.parser.Parse(filepath.Join(b.opts.ResourcesPath, folder), b.name)
+			// Parse translation files in each language directory
+			trans, err := loadJsonFile(filepath.Join(b.opts.ResourcesPath, folder, b.name+".json"))
 			if err != nil {
-				// 如果解析过程中发生错误，记录错误信息并继续处理下一个目录
+				// If an error occurs during parsing, log the error and continue processing the next directory
 				log.Println(err)
 				continue
 			}
 
-			for key, value := range trans {
-				// 文件夹为语言名字
-				b.AddTrans(folder, key, value)
-			}
+			// Folder name is the language name
+			b.WithTranslations(folder, trans)
 		}
 	}
+}
+
+// loadJsonFile loads and parses a JSON translation file
+func loadJsonFile(jsonFile string) (trans map[string]string, err error) {
+	// Check if file exists, if not return nil map and nil error
+	if !isFileExist(jsonFile) {
+		return nil, nil
+	}
+
+	// Read file content
+	byts, err := os.ReadFile(jsonFile)
+	if err != nil {
+		// If an error occurs while reading the file, return the error
+		return nil, fmt.Errorf("read file error: %v", err)
+	}
+
+	// Parse JSON data
+	if err := json.Unmarshal(byts, &trans); err != nil {
+		// If an error occurs while parsing JSON data, return the error
+		return nil, fmt.Errorf("unmarshal error: %v", err)
+	}
+
+	return trans, nil
 }

@@ -5,15 +5,15 @@ import (
 	"golang.org/x/text/language"
 )
 
-// 语言标识符的来源
+// Language identifier sources
 const (
 	headerAcceptLanguage = "Accept-Language"
 	queryLang            = "lang"
 	cookieLang           = "lang"
 )
 
-// Gin middleware
-// defaultLangs 默认语言，可多个。当从 query，cookie，accept-language 都没有时，使用默认语言列表
+// GinMiddleware is a Gin framework middleware for handling internationalization
+// defaultLangs: default languages to use when no language is specified in query, cookie, or accept-language header
 func GinMiddleware(defaultLangs ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -21,12 +21,12 @@ func GinMiddleware(defaultLangs ...string) gin.HandlerFunc {
 
 		langs := []string{}
 
-		// 获取语言标识
-		// 查找顺序：1. URL参数 2. Cookie 3. Accept-Language头 4. 默认语言
+		// Get language identifier
+		// Search order: 1. URL parameter 2. Cookie 3. Accept-Language header 4. Default language
 		if lang := c.Query(queryLang); lang != "" {
 			langs = append(langs, lang)
 
-			// 如果请求是通过URL参数设置语言的，将其保存到cookie
+			// If language is set via URL parameter, save it to cookie
 			defer func() {
 				c.SetCookie(cookieLang, lang, 0, "/", "", false, true)
 			}()
@@ -40,18 +40,18 @@ func GinMiddleware(defaultLangs ...string) gin.HandlerFunc {
 			langs = append(langs, acceptedLangs...)
 		}
 
-		// 如果没有获取到语言或语言不受支持，使用默认语言
+		// If no language was obtained or the language is not supported, use the default language
 		if len(langs) == 0 {
 			langs = defaultLangs
 		}
 
-		// 将语言设置到上下文
+		// Set language to context
 		ctx := c.Request.Context()
 		c.Request = c.Request.WithContext(WithAcceptLanguages(ctx, langs...))
 	}
 }
 
-// 解析Accept-Language头并返回最佳匹配的语言
+// parseAcceptLanguages parses the Accept-Language header and returns the best matching languages
 func parseAcceptLanguages(acceptLanguage string) []string {
 	langs := []string{}
 

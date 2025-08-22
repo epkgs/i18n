@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/epkgs/i18n/geni18n/internal"
+	"github.com/epkgs/i18n/i18ntool/internal"
 	"github.com/spf13/cobra"
 )
 

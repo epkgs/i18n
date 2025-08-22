@@ -345,9 +345,9 @@ func (g *Generator) processAssignment(assignStmt *ast.AssignStmt, i18nPkg string
 	g.Bundles[key] = bundle
 }
 
-// collectDefinitions collects format strings from Translate method calls
+// collectDefinitions collects format strings from Bundle.Str and Bundle.Err method calls
 func (g *Generator) collectDefinitions(f *ast.File) {
-	// Collect format strings from Translate method calls
+	// Collect format strings from Bundle.Str and Bundle.Err method calls
 	ast.Inspect(f, func(n ast.Node) bool {
 		// Look for call expressions
 		callExpr, ok := n.(*ast.CallExpr)
@@ -355,113 +355,52 @@ func (g *Generator) collectDefinitions(f *ast.File) {
 			return true
 		}
 
-		// Check if it's a method call on an identifier with name "Definef"
-		// Handle both regular calls and generic calls
-		var selExpr *ast.SelectorExpr
-
-		// Case 1: Regular function call like i18n.Define(...)
-		if se, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-			selExpr = se
-		} else if idxExpr, ok := callExpr.Fun.(*ast.IndexExpr); ok {
-			// Case 2: Generic function call like i18n.Definef[string](...)
-			if se, ok := idxExpr.X.(*ast.SelectorExpr); ok {
-				selExpr = se
-			}
-		}
-
-		// If we don't have a selector expression, skip
-		if selExpr == nil {
+		// Check if it's a method call on a selector expression
+		selExpr, ok := callExpr.Fun.(*ast.SelectorExpr)
+		if !ok {
 			return true
 		}
 
-		// Check if the method name is "Definef", "Define"
-		if selExpr.Sel.Name != "Define" && selExpr.Sel.Name != "Definef" &&
-			selExpr.Sel.Name != "DefineError" && selExpr.Sel.Name != "DefineErrorf" {
+		// Check if the method name is "Str" or "Err"
+		if selExpr.Sel.Name != "Str" && selExpr.Sel.Name != "Err" {
 			return true
 		}
 
-		// Check if it has at least 2 arguments (bundle and format string)
-		if len(callExpr.Args) < 2 {
+		// Check if it has at least 1 argument (the format string)
+		if len(callExpr.Args) < 1 {
 			return true
 		}
 
-		// 获取第一个参数
-		//   - 参数应为变量
-		//   - 如果是当前包的变量，则格式化 key 为当前package path 全路径 + 变量名
-		//   - 如果是外部包的变量，则格式化 key 为外部包的全路径 + 变量名
-		//   - 通过 key 查找语言包
-		//   - 如果未找到，则跳过
+		// Get the target bundle from the selector expression
+		target, ok := selExpr.X.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+
+		// Get the bundle variable name
+		bundleVarName := target.Sel.Name
+
+		// Find the package path for the selector's package
+		packagePath := findPackagePath(f, target.X.(*ast.Ident).Name)
+		if packagePath == "" {
+			// Assume it's in the same package
+			packagePath = g.formatPackagePath(f.Name.Name, f.Name.Name)
+		}
+
+		// Create key using the found package path
+		key := packagePath + "." + bundleVarName
+		bundle, exists := g.Bundles[key]
+		if !exists {
+			return true
+		}
+
+		// Get the first argument (format string)
 		firstArg := callExpr.Args[0]
-		var bundle *Bundle
-
-		switch arg := firstArg.(type) {
-		case *ast.Ident:
-			// Direct identifier like "bundle"
-			// Create key using current package
-			key := g.formatPackagePath(f.Name.Name, f.Name.Name) + "." + arg.Name
-			var exists bool
-			bundle, exists = g.Bundles[key]
-			if !exists {
-				return true
-			}
-
-		case *ast.SelectorExpr:
-			// Selector expression like "locales.User"
-			if ident, ok := arg.X.(*ast.Ident); ok {
-				// Find the package path for the selector's package
-				packagePath := findPackagePath(f, ident.Name)
-				if packagePath != "" {
-					// Create key using the found package path
-					key := packagePath + "." + arg.Sel.Name
-					var exists bool
-					bundle, exists = g.Bundles[key]
-					if !exists {
-						return true
-					}
-				} else {
-					// Assume it's in the same package
-					key := g.formatPackagePath(f.Name.Name, f.Name.Name) + "." + arg.Sel.Name
-					var exists bool
-					bundle, exists = g.Bundles[key]
-					if !exists {
-						return true
-					}
-				}
-			} else {
-				return true
-			}
-
-		default:
-			// Unsupported argument type
-			return true
-		}
-
-		// 获取第二个参数
-		//   - 参数应为字符串
-		//   - 将其去除双引号后添加进语言包的definition
-		secondArg := callExpr.Args[1]
-		if lit, ok := secondArg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-			// 参数是字符串
-			// 去除双引号后添加进语言包的definition
+		if lit, ok := firstArg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
+			// Argument is a string literal
+			// Remove quotes and add to bundle definitions
 			definition := Unquote(lit.Value)
-			if bundle != nil {
-				bundle.AddDefinition(definition)
-			}
-		}
-
-		// 尝试获取第三个参数（如有）
-		//   - 尝试获取字符串参数
-		//   - 如果是字符串，则将其去除双引号后添加进语言包的definition
-		if len(callExpr.Args) >= 3 {
-			thirdArg := callExpr.Args[2]
-			if lit, ok := thirdArg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-				// 参数是字符串
-				// 去除双引号后添加进语言包的definition
-				definition := Unquote(lit.Value)
-				if bundle != nil {
-					bundle.AddDefinition(definition)
-				}
-			}
+			bundle.AddDefinition(definition)
 		}
 
 		return true

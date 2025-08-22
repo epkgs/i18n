@@ -11,13 +11,17 @@ import (
 	"golang.org/x/text/language"
 )
 
+// isFileExist checks if a file exists at the given path
 func isFileExist(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil || os.IsExist(err)
 }
 
+// langIDCache caches formatted language identifiers
 var langIDCache = map[string]string{}
 
+// formatLangID formats a language identifier by replacing hyphens with underscores
+// and caches the result for performance
 func formatLangID(lang string) string {
 	if id, ok := langIDCache[lang]; ok {
 		return id
@@ -27,25 +31,29 @@ func formatLangID(lang string) string {
 	return id
 }
 
+// paser is a template parser for internationalization
 var paser = template.New("i18n")
 
+// parseTemplate parses a template message with the given argument
 func parseTemplate(msg string, arg1 any) string {
 
-	// 使用 text/template 解析结构体或 map
+	// Parse struct or map using text/template
 	tmpl, err := paser.Parse(msg)
 	if err != nil {
-		return msg // 解析失败回退
+		return msg // Fallback on parse failure
 	}
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, arg1); err != nil {
-		return msg // 执行失败回退
+		return msg // Fallback on execution failure
 	}
 	return buf.String()
 }
 
+// languageTagCache caches parsed language tags
 var languageTagCache = make(map[string]*language.Tag)
 
+// parseLanguageTag parses a language string into a language.Tag and caches the result
 func parseLanguageTag(lang string) *language.Tag {
 	if _, exist := languageTagCache[lang]; !exist {
 		t, e := language.Parse(lang)
@@ -59,6 +67,11 @@ func parseLanguageTag(lang string) *language.Tag {
 	return languageTagCache[lang]
 }
 
+// parse processes a translated string with the given arguments
+// It handles different argument types appropriately:
+//   - Single struct or map: uses template parsing
+//   - Single slice or array: expands elements as separate arguments
+//   - Multiple arguments or other types: uses standard fmt.Sprintf
 func parse(transleted string, args ...any) string {
 
 	if len(args) == 0 {
@@ -80,7 +93,7 @@ func parse(transleted string, args ...any) string {
 
 		switch v.Kind() {
 		case reflect.Struct:
-			// 结构体为零值 或 空结构体（无字段），避免模板渲染失败
+			// Zero value struct or empty struct (no fields), avoid template rendering failure
 			if v.IsZero() || v.NumField() == 0 {
 				return transleted
 			}
@@ -98,7 +111,7 @@ func parse(transleted string, args ...any) string {
 				return transleted
 			}
 
-			// 将数组/切片转换为 []any
+			// Convert array/slice to []any
 			slices := make([]any, v.Len())
 			for i := 0; i < v.Len(); i++ {
 				slices[i] = v.Index(i).Interface()

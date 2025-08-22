@@ -1,152 +1,217 @@
-下面是一个完整的 [README.md](README.md) 文档，适用于你的 i18n 错误系统项目。该文档从**项目简介**、**核心功能**、**使用示例**、**结构说明**、**接口定义**、**错误包装器**、**国际化支持**、**测试建议**等维度进行详细说明，适用于团队内部文档或开源项目说明。
+# 🌍 i18n - Internationalization library for Go
 
----
+A simple yet powerful internationalization library for Go applications with support for translation and localized error handling.
 
-# 🌍 i18n 错误系统（支持国际化、错误包装、上下文注入）
+## 📌 Features
 
-一个支持 **国际化（i18n）**、**错误定义**、**错误包装器（Wrapper）** 和 **上下文注入** 的 Go 错误系统。
+- ✅ Simple API for string translation
+- ✅ Automatic language detection from context
+- ✅ Support for parameterized translations
+- ✅ JSON-based translation files
+- ✅ Gin middleware for HTTP applications
+- ✅ Internationalized error handling
+- ✅ Thread-safe bundle caching
 
-## 📌 项目简介
-
-该项目提供了一个完整的错误定义与包装系统，支持：
-
-- ✅ 多语言翻译支持（基于 context）
-- ✅ 自定义错误模板
-- ✅ 错误包装器（如错误码、HTTP 状态码、TraceID）
-- ✅ 支持 Gin 等 Web 框架集成
-- ✅ 链式构建错误定义
-- ✅ 可扩展的错误系统
-
-## 🧱 模块结构
+## 🧱 Project Structure
 
 ```bash
 i18n/
-├── i18n.go                # i18n 翻译器主结构
-├── i18n_item.go           # 翻译项定义
-├── context.go             # 上下文操作（用于注入 Accept-Language）
-├── error.go               # 核心错误类型定义
-├── error_definition.go    # 错误定义构造器
-└── error_extras.go        # 错误包装器定义
+├── errors/                # Error handling package
+├── examples/              # Usage examples
+├── i18ntool/              # CLI tool for managing translations
+├── i18n_bundle.go         # Main bundle implementation
+├── i18n_context.go        # Context handling for language preferences
+├── i18n_interface.go      # Interface definitions
+├── i18n_middleware.go     # Gin middleware for language detection
+├── i18n_string.go         # String translation implementation
+└── i18n_utils.go          # Utility functions
 ```
 
-## 🧩 核心功能
-
-### ✅ 1. 国际化（i18n）支持
-
-通过 [I18n](i18n_item.go#L11-L11) 和 [Item](i18n_item.go#L10-L16) 实现多语言翻译支持，支持：
-
-- 多语言映射
-- 自动语言匹配
-- 支持 fallback 到默认语言
-- 支持上下文注入语言
-
-### ✅ 2. 错误定义系统
-
-通过 [errorDefinition](error_definition.go#L12-L16) 定义错误模板，支持：
-
-- 定义错误格式（如 `"user %s not found"`）
-- 支持链式构建错误定义
-- 支持运行时注入参数（如 `err.New(ctx, "alice")`）
-
-### ✅ 3. 错误包装器（Error Wrapper）
-
-支持链式包装错误，例如：
-
-- 错误码（Code）
-- HTTP 状态码（HTTP Status）
-- TraceID（追踪 ID）
-- 自定义包装器（如日志、监控）
-
-### ✅ 4. 上下文注入语言
-
-通过 `context` 支持注入 `Accept-Language`，用于动态选择语言：
+## 🚀 Quick Start
+### 1. Define translation bundles
+Create a bundle for your translations:
 
 ```go
-ctx := i18n.WithAcceptLanguages(context.Background(), "zh-CN", "zh")
+// locales/user.go
+package locales
+
+import "github.com/epkgs/i18n"
+
+var User = i18n.NewBundle("user", func(opts *i18n.Options) {
+    opts.DefaultLang = "en"
+    opts.ResourcesPath = "locales"
+})
 ```
 
-### ✅ 5. 与 Gin 集成（可选）
-
-支持与 Gin Web 框架无缝集成，可作为 Gin 的 `context.Error()` 使用。
-
-## 🧱 使用示例
-
-### 1. 初始化 i18n 翻译器
-
-```go
-i18n := i18n.NewCatalog("user")
-i18n.AddTrans("zh", "user %s not found", "用户 %s 未找到")
-i18n.AddTrans("en", "user %s not found", "User %s not found")
-```
-
-### 2. 定义错误模板
-
-```go
-errDef := i18n.DefineError("user %s not found").WithStatus(404, 404).WithTraceID("abc123")
-```
-
-### 3. 根据 ctx 构建错误
-
-```go
-err := errDef.New(ctx, "alice")
-```
-
-### 4. 获取错误信息
-
-```go
-fmt.Println(err.Error()) // 输出："用户 alice 未找到"
-```
-
-### 5. 提取错误信息
-
-```go
-if statusErr, ok := err.(interface {
-	Code() int
-	HttpStatus() int
-}); ok {
-	fmt.Println("Code:", statusErr.Code())
-	fmt.Println("HTTP Status:", statusErr.HttpStatus())
-}
-```
+### 2. Create translation files
+Create JSON translation files in your resources directory:
 
 
-
-## 🧰 错误包装器
-
-| 包装器 | 说明 | 接口方法 |
-|--------|------|----------|
-| `WithStatus` | 添加错误码和 HTTP 状态码 | `Code()`, `HttpStatus()` |
-| `WithTraceID` | 添加 TraceID | `TraceID()` |
-
-
-## 📁 配置文件结构（示例）
-
-```
+```bash
 locales/
-└── zh/
+├── en/
+│   └── user.json
+└── zh_CN/
     └── user.json
 ```
 
-`user.json` 示例：
-
+Example `locales/en/user.json`:
 ```json
 {
-  "user %s not found": "用户 %s 未找到"
+  "User %s not exist": "User %s does not exist"
 }
 ```
 
+Example `locales/zh_CN/user.json`:
+```json
+{
+  "User %s not exist": "用户 %s 不存在"
+}
+```
 
-## 🧪 与 Gin 集成示例
+### 3. Use translations in your code
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    
+    "github.com/epkgs/i18n"
+    "path/to/locales"
+)
+
+func main() {
+    // Create a context with language preference
+    ctx := i18n.WithAcceptLanguages(context.Background(), "zh_CN")
+    
+    // Create a translatable string
+    user := "alice"
+    message := locales.User.Str("User %s not exist", user)
+    
+    // Get default string
+    fmt.Printf("Default: %s\n", message)
+    
+    // Get translated string
+    fmt.Printf("Translated: %s\n", message.T(ctx))
+}
+```
+
+### 4. Use with Gin web framework
 
 ```go
-func someHandler(c *gin.Context) {
-	err := errDef.New(c.Request.Context(), "alice")
-	c.AbortWithError(404, err)
+package main
+
+import (
+    "github.com/epkgs/i18n"
+    "github.com/gin-gonic/gin"
+    "golang.org/x/text/language"
+)
+
+func main() {
+    r := gin.Default()
+    
+    // Add i18n middleware
+    r.Use(i18n.GinMiddleware(language.AmericanEnglish.String()))
+    
+    r.GET("/api/user", func(c *gin.Context) {
+        // The context now contains language preferences
+        // based on Accept-Language header, query params, or cookies
+        message := locales.User.Str("User not found")
+        c.JSON(404, gin.H{
+            "error": message.T(c.Request.Context()),
+        })
+    })
+    
+    r.Run(":8080")
 }
 ```
 
+### 5. Internationalized errors
+```go
+func someHandler(c *gin.Context) {
+    err := locales.User.Err("User %s not exist", "alice")
+    // err implements error interface and can be translated
+    response.Fail(c, err)
+}
+```
+
+## 🛠️ API Reference
+### Bundle
+The main component for managing translations.
+```go
+// Create a new bundle
+bundle := i18n.NewBundle("domain", func(opts *i18n.Options) {
+    opts.DefaultLang = "en"        // Default language
+    opts.ResourcesPath = "locales" // Path to translation files
+})
+
+// Create a translatable string
+str := bundle.Str("Hello %s", "world")
+
+// Create an internationalized error
+err := bundle.Err("Something went wrong: %s", details)
+```
+
+### Context Integration
+```go
+// Set language preferences in context
+ctx := i18n.WithAcceptLanguages(context.Background(), "zh_CN", "zh", "en")
+
+// Get language preferences from context
+langs := i18n.GetAcceptLanguages(ctx)
+```
+
+### Gin Middleware
+```go
+// Use the middleware to automatically detect language preferences
+r.Use(i18n.GinMiddleware("en")) // "en" is the fallback language
+```
+
+The middleware checks for language preferences in this order:
+
+  1. Query parameter lang
+  2. Cookie lang
+  3. Accept-Language header
+  4. Default language
+
+## 📁 Translation File Structure
+
+Translation files are organized by language directories:
+
+```bash
+locales/
+├── en/
+│   ├── user.json
+│   └── common.json
+├── zh_CN/
+│   ├── user.json
+│   └── common.json
+└── es/
+    ├── user.json
+    └── common.json
+```
+
+Each JSON file contains key-value pairs where the key is the original string and the value is the translation:
+```json
+{
+  "Welcome %s": "欢迎 %s",
+  "User not found": "用户未找到",
+  "Invalid input": "输入无效"
+}
+```
+
+## 🧰 i18n Tool
+The project includes a CLI tool to help manage translations:
+```bash
+# install
+go install github.com/epkgs/i18n/i18ntool@latest
+
+# Generate/update translation files
+i18ntool extract
+```
+This tool scans your code for bundle.Str() and bundle.Err() calls and automatically creates or updates the JSON translation files.
 
 
 ## 📄 License
-
-MIT License
+This project is licensed under the MIT License.
