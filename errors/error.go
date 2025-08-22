@@ -24,6 +24,17 @@ func (s String) String() string {
 	return string(s)
 }
 
+func toStringer(str any) fmt.Stringer {
+	switch s := str.(type) {
+	case fmt.Stringer:
+		return s
+	case string:
+		return String(s)
+	default:
+		return String(fmt.Sprintf("%v", s))
+	}
+}
+
 // i18nError represents an internationalized error with additional metadata
 type i18nError struct {
 	msg   fmt.Stringer
@@ -36,22 +47,11 @@ type i18nError struct {
 // New creates and returns a new Error with the given message
 // The message can be a string, fmt.Stringer, or any other type
 func New(msg any) Error {
-
-	err := &i18nError{
+	return &i18nError{
+		msg:   toStringer(msg),
 		extra: map[string]any{},
 		stack: callers(),
 	}
-
-	switch m := msg.(type) {
-	case fmt.Stringer:
-		err.msg = m
-	case string:
-		err.msg = String(m)
-	default:
-		err.msg = String(fmt.Sprint(msg))
-	}
-
-	return err
 }
 
 // Errorf creates and returns a new Error with formatted message
@@ -124,6 +124,16 @@ func (e *i18nError) clone() *i18nError {
 		err.extra[i] = v
 	}
 
+	return err
+}
+
+// WithMessage creates a new error instance with the same properties as the current error but with a different message content.
+// It takes a message parameter of any type, converts it to a string representation,
+// and creates a new error object that retains all properties of the original error
+// (such as stack trace, extra data, etc.) but uses the new message content.
+func (e *i18nError) WithMessage(msg any) Error {
+	err := e.clone()
+	err.msg = toStringer(msg)
 	return err
 }
 
