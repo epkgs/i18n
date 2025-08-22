@@ -17,6 +17,7 @@ type Storager interface {
 
 type Error interface {
 	error
+	WithMessage(msg any) Error
 	WithStack() Error
 	Wrap(cause error) Error
 	Cause() error
