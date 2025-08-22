@@ -127,11 +127,11 @@ func (e *i18nError) clone() *i18nError {
 	return err
 }
 
-// WithMessage creates a new error instance with the same properties as the current error but with a different message content.
+// WithMsg creates a new error instance with the same properties as the current error but with a different message content.
 // It takes a message parameter of any type, converts it to a string representation,
 // and creates a new error object that retains all properties of the original error
 // (such as stack trace, extra data, etc.) but uses the new message content.
-func (e *i18nError) WithMessage(msg any) Error {
+func (e *i18nError) WithMsg(msg any) Error {
 	err := e.clone()
 	err.msg = toStringer(msg)
 	return err
