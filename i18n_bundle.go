@@ -3,7 +3,6 @@ package i18n
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -65,6 +64,7 @@ func NewBundle(name string, fn ...OptionsFunc) *Bundle {
 		},
 	}
 
+	// auto load trans resources
 	b.load()
 
 	bundleCache.Store(b.opts.ResourcesPath+"."+b.name, b)
@@ -110,8 +110,7 @@ func (b *Bundle) translate(ctx context.Context, format string, args ...any) stri
 }
 
 // getTransTxt retrieves the translated text for the given original text based on language tags
-func (b *Bundle) getTransTxt(tags []language.Tag, orig string) string {
-	txt := orig
+func (b *Bundle) getTransTxt(tags []language.Tag, key string) string {
 
 	// Match language
 	var lang string
@@ -128,15 +127,15 @@ func (b *Bundle) getTransTxt(tags []language.Tag, orig string) string {
 	if !exist {
 		trans, exist = b.trans[b.opts.DefaultLang]
 		if !exist {
-			return orig
+			return key
 		}
 	}
 
-	if txt, exist = trans[txt]; !exist {
-		return orig
+	if txt, exist := trans[key]; exist {
+		return txt
 	}
 
-	return txt
+	return key
 }
 
 // match finds the best matching language tag from the provided tags
@@ -174,6 +173,10 @@ func (b *Bundle) Name() string {
 //
 // Returns the bundle instance pointer to support method chaining
 func (b *Bundle) WithTranslations(lang string, trans map[string]string) *Bundle {
+
+	if len(trans) == 0 {
+		return b
+	}
 
 	// Format language
 	lang = formatLangID(lang)
@@ -224,11 +227,27 @@ func (b *Bundle) load() {
 
 			folder := f.Name()
 
-			// Parse translation files in each language directory
-			trans, err := loadJsonFile(filepath.Join(b.opts.ResourcesPath, folder, b.name+".json"))
+			file := filepath.Join(b.opts.ResourcesPath, folder, b.name+".json")
+
+			// Check if file exists, if not return nil map and nil error
+			if !isFileExist(file) {
+				continue
+			}
+
+			// Read file content
+			byts, err := os.ReadFile(file)
 			if err != nil {
-				// If an error occurs during parsing, log the error and continue processing the next directory
-				log.Println(err)
+				// If an error occurs while reading the file, return the error
+				log.Printf("read file %s: %v", file, err)
+				continue
+			}
+
+			var trans map[string]string
+
+			// Parse JSON data
+			if err := json.Unmarshal(byts, &trans); err != nil {
+				// If an error occurs while parsing JSON data, return the error
+				log.Printf("unmarshal file %s: %v", file, err)
 				continue
 			}
 
@@ -238,25 +257,14 @@ func (b *Bundle) load() {
 	}
 }
 
-// loadJsonFile loads and parses a JSON translation file
-func loadJsonFile(jsonFile string) (trans map[string]string, err error) {
-	// Check if file exists, if not return nil map and nil error
-	if !isFileExist(jsonFile) {
-		return nil, nil
-	}
-
-	// Read file content
-	byts, err := os.ReadFile(jsonFile)
-	if err != nil {
-		// If an error occurs while reading the file, return the error
-		return nil, fmt.Errorf("read file error: %v", err)
-	}
-
-	// Parse JSON data
-	if err := json.Unmarshal(byts, &trans); err != nil {
-		// If an error occurs while parsing JSON data, return the error
-		return nil, fmt.Errorf("unmarshal error: %v", err)
-	}
-
-	return trans, nil
+// Reload reloads translation resources for all bundles in the cache.
+// It iterates through all bundle instances in the cache and calls their load method
+// to reload translation files from the filesystem.
+func Reload() {
+	bundleCache.Range(func(key, value any) bool {
+		if b, ok := value.(*Bundle); ok {
+			b.Reload()
+		}
+		return true
+	})
 }
