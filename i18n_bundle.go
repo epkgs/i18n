@@ -46,6 +46,9 @@ func NewBundle(name string, fn ...OptionsFunc) *Bundle {
 		f(&opts)
 	}
 
+	// Format default language
+	opts.DefaultLang = formatLangID(opts.DefaultLang)
+
 	key := opts.ResourcesPath + "." + name
 
 	if v, ok := bundleCache.Load(key); ok {
@@ -57,7 +60,7 @@ func NewBundle(name string, fn ...OptionsFunc) *Bundle {
 		opts: opts,
 		name: name,
 		trans: map[string]map[string]string{
-			formatLangID(opts.DefaultLang): make(map[string]string),
+			opts.DefaultLang: make(map[string]string),
 		},
 		tranLangs: []language.Tag{
 			language.MustParse(opts.DefaultLang),
@@ -119,9 +122,6 @@ func (b *Bundle) getTransTxt(tags []language.Tag, key string) string {
 	} else {
 		lang = b.opts.DefaultLang
 	}
-
-	// Format language key
-	lang = formatLangID(lang)
 
 	trans, exist := b.trans[lang]
 	if !exist {
