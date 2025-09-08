@@ -54,7 +54,7 @@ func (b *Bundle) GenerateTranslationFile(baseDir string, langs ...string) error 
 		uniqueLangs[id] = id
 	}
 
-	// 遍历 resPath 的一层子目录，将所有目录名称作为语言 ID
+	// Traverse the subdirectories of resPath and use directory names as language IDs
 	if rd, err := os.ReadDir(resPath); err == nil {
 		for _, f := range rd {
 			if f.IsDir() {
