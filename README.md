@@ -51,7 +51,7 @@ Create JSON translation files in your resources directory:
 locales/
 ├── en/
 │   └── user.json
-└── zh_CN/
+└── zh-CN/
     └── user.json
 ```
 
@@ -62,7 +62,7 @@ Example `locales/en/user.json`:
 }
 ```
 
-Example `locales/zh_CN/user.json`:
+Example `locales/zh-CN/user.json`:
 ```json
 {
   "User %s not exist": "用户 %s 不存在"
@@ -83,7 +83,7 @@ import (
 
 func main() {
     // Create a context with language preference
-    ctx := i18n.WithAcceptLanguages(context.Background(), "zh_CN")
+    ctx := i18n.WithAcceptLanguages(context.Background(), "zh-CN")
     
     // Create a translatable string
     user := "alice"
@@ -156,7 +156,7 @@ err := bundle.Err("Something went wrong: %s", details)
 ### Context Integration
 ```go
 // Set language preferences in context
-ctx := i18n.WithAcceptLanguages(context.Background(), "zh_CN", "zh", "en")
+ctx := i18n.WithAcceptLanguages(context.Background(), "zh-CN", "zh", "en")
 
 // Get language preferences from context
 langs := i18n.GetAcceptLanguages(ctx)
@@ -184,7 +184,7 @@ locales/
 ├── en/
 │   ├── user.json
 │   └── common.json
-├── zh_CN/
+├── zh-CN/
 │   ├── user.json
 │   └── common.json
 └── es/
