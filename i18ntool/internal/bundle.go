@@ -48,17 +48,29 @@ func (b *Bundle) GenerateTranslationFile(baseDir string, langs ...string) error 
 		resPath = filepath.Join(absBaseDir, b.opts.ResourcesPath)
 	}
 
-	uniqueLangs := map[string]struct{}{}
+	uniqueLangs := map[string]string{} // lang ID -> folder name
 	for _, lang := range langs {
-		uniqueLangs[lang] = struct{}{}
+		id := formatLangID(lang)
+		uniqueLangs[id] = id
+	}
+
+	// 遍历 resPath 的一层子目录，将所有目录名称作为语言 ID
+	if rd, err := os.ReadDir(resPath); err == nil {
+		for _, f := range rd {
+			if f.IsDir() {
+				folder := f.Name()
+				id := formatLangID(folder)
+				uniqueLangs[id] = folder
+			}
+		}
 	}
 
 	if len(uniqueLangs) == 0 {
-		uniqueLangs[b.opts.DefaultLang] = struct{}{}
+		uniqueLangs[b.opts.DefaultLang] = b.opts.DefaultLang
 	}
 
-	for lang := range uniqueLangs {
-		langDir := filepath.Join(resPath, lang)
+	for _, folder := range uniqueLangs {
+		langDir := filepath.Join(resPath, folder)
 		if err := os.MkdirAll(langDir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", langDir, err)
 		}
@@ -75,12 +87,20 @@ func (b *Bundle) GenerateTranslationFile(baseDir string, langs ...string) error 
 			}
 		}
 
+		// changed mark
+		changed := false
+
 		// Add format strings as both keys and values
 		for txt := range b.definitions {
 			// Only add if not already present
 			if _, exists := translations.Get(txt); !exists {
 				translations.Set(txt, txt)
+				changed = true // Mark as changed
 			}
+		}
+
+		if !changed {
+			continue // No changes, skip
 		}
 
 		// Write to file
