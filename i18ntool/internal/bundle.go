@@ -6,46 +6,69 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/epkgs/i18n"
 	"github.com/iancoleman/orderedmap"
 )
+
+var (
+	g_DefaultLanguage = "en"      // Default value
+	g_ResourcesDir    = "locales" // Default value
+)
+
+type Var struct {
+	Name        string // The variable name
+	FilePath    string // The file where this variable is defined
+	PackageName string // The package identifier name
+	PackagePath string // The package path
+}
 
 // Bundle represents a variable that holds a Bundle
 type Bundle struct {
 	Name string
-	opts *i18n.Options
 
-	Key         string
-	VarName     string
-	FilePath    string // The file where this variable is defined
-	PackageName string // The package where this variable is defined
-	PackagePath string // The package path
+	vars []Var
 
-	definitions map[string]struct{}
+	trans map[string]struct{}
 }
 
-func newBundle() *Bundle {
+func newBundle(name string) *Bundle {
 	return &Bundle{
-		opts: &i18n.Options{
-			DefaultLang:   "en",      // Default value
-			ResourcesPath: "locales", // Default value
-		},
-		definitions: make(map[string]struct{}),
+		Name:  name,
+		vars:  []Var{},
+		trans: make(map[string]struct{}),
 	}
 }
 
-func (b *Bundle) AddDefinition(definition string) {
-	b.definitions[definition] = struct{}{}
+func (b *Bundle) AddVarDefine(varName string, filePath string, packageName string, packagePath string) {
+	exist := false
+	for _, v := range b.vars {
+		if v.Name == varName && v.FilePath == filePath {
+			exist = true
+			break
+		}
+	}
+
+	if !exist {
+		b.vars = append(b.vars, Var{
+			Name:        varName,
+			FilePath:    filePath,
+			PackageName: packageName,
+			PackagePath: packagePath,
+		})
+	}
+}
+
+func (b *Bundle) AddTrans(key string) {
+	b.trans[key] = struct{}{}
 }
 
 func (b *Bundle) GenerateTranslationFile(baseDir string, langs ...string) error {
 
 	var resPath string
-	if filepath.IsAbs(b.opts.ResourcesPath) {
-		resPath = b.opts.ResourcesPath
+	if filepath.IsAbs(g_ResourcesDir) {
+		resPath = g_ResourcesDir
 	} else {
 		absBaseDir, _ := filepath.Abs(baseDir)
-		resPath = filepath.Join(absBaseDir, b.opts.ResourcesPath)
+		resPath = filepath.Join(absBaseDir, g_ResourcesDir)
 	}
 
 	uniqueLangs := map[string]string{} // lang ID -> folder name
@@ -66,7 +89,7 @@ func (b *Bundle) GenerateTranslationFile(baseDir string, langs ...string) error 
 	}
 
 	if len(uniqueLangs) == 0 {
-		uniqueLangs[b.opts.DefaultLang] = b.opts.DefaultLang
+		uniqueLangs[g_DefaultLanguage] = g_DefaultLanguage
 	}
 
 	for _, folder := range uniqueLangs {
@@ -91,7 +114,7 @@ func (b *Bundle) GenerateTranslationFile(baseDir string, langs ...string) error 
 		changed := false
 
 		// Add format strings as both keys and values
-		for txt := range b.definitions {
+		for txt := range b.trans {
 			// Only add if not already present
 			if _, exists := translations.Get(txt); !exists {
 				translations.Set(txt, txt)

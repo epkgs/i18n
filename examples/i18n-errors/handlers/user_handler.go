@@ -12,7 +12,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-var bundle = i18n.NewBundle("user")
+var bundle = i18n.Bundle("user")
 
 func Login(c *gin.Context) {
 

@@ -19,7 +19,7 @@ type Generator struct {
 	ModuleDir  string // module dir
 	BaseDir    string // generator work base path
 
-	Bundles map[string]*Bundle // "package.varName" -> Bundle
+	bundleCache map[string]*Bundle // name => bundle
 }
 
 func NewGenerator(searchPath string) *Generator {
@@ -34,13 +34,39 @@ func NewGenerator(searchPath string) *Generator {
 		ModuleDir:  moduleDir,
 		ModuleName: moduleName,
 
-		Bundles: make(map[string]*Bundle),
+		bundleCache: map[string]*Bundle{},
 	}
+}
+
+func (g *Generator) AddBundle(bundle *Bundle) {
+	g.bundleCache[bundle.Name] = bundle
+}
+
+func (g *Generator) Bundle(name string) *Bundle {
+	if bundle, ok := g.bundleCache[name]; ok {
+		return bundle
+	}
+
+	bundle := newBundle(name)
+	g.AddBundle(bundle)
+	return bundle
+}
+
+func (g *Generator) GetBundleByVar(packagePath string, varName string) *Bundle {
+	for _, bundle := range g.bundleCache {
+		for _, bundleVar := range bundle.vars {
+			if bundleVar.PackagePath == packagePath && bundleVar.Name == varName {
+				return bundle
+			}
+		}
+	}
+
+	return nil
 }
 
 func (g *Generator) GenerateTranslations(langs ...string) error {
 
-	for _, bundle := range g.Bundles {
+	for _, bundle := range g.bundleCache {
 		if err := bundle.GenerateTranslationFile(g.BaseDir, langs...); err != nil {
 			return err
 		}
@@ -83,7 +109,7 @@ func (g *Generator) CollectBundles() error {
 		}
 
 		// Collect bundle configurations
-		g.collectBundleConfigs(f, i18nPkg, path)
+		g.collectFunctions(f, i18nPkg, path)
 
 		return nil
 	})
@@ -167,8 +193,8 @@ func findModule(searchPath string) (moduleDir, moduleName string, err error) {
 	return "", "", fmt.Errorf("go.mod file not found")
 }
 
-// collectBundleConfigs collects bundle configurations from NewBundle calls
-func (g *Generator) collectBundleConfigs(f *ast.File, i18nPkg string, filePath string) {
+// collectFunctions collects bundle configurations from NewBundle calls
+func (g *Generator) collectFunctions(f *ast.File, i18nPkg string, filePath string) {
 	// Look for variable declarations and assignments
 	ast.Inspect(f, func(n ast.Node) bool {
 		var assignStmt *ast.AssignStmt
@@ -218,14 +244,9 @@ func (g *Generator) processAssignment(assignStmt *ast.AssignStmt, i18nPkg string
 		return
 	}
 
-	// Check if it's a call to NewBundle function
+	// Check if it's a call to function
 	selExpr, ok := callExpr.Fun.(*ast.SelectorExpr)
 	if !ok {
-		return
-	}
-
-	// Check if the function name is "NewBundle" and it's from the i18n package
-	if selExpr.Sel.Name != "NewBundle" {
 		return
 	}
 
@@ -240,109 +261,104 @@ func (g *Generator) processAssignment(assignStmt *ast.AssignStmt, i18nPkg string
 		return
 	}
 
-	// Check if it has at least 1 argument (bundle name)
-	if len(callExpr.Args) < 1 {
-		return
-	}
-
-	// Extract the bundle name (first argument)
-	lit, ok := callExpr.Args[0].(*ast.BasicLit)
-	if !ok || lit.Kind != token.STRING {
-		return
-	}
-
-	// Clean the string literal (remove quotes)
-	bundleName := Unquote(lit.Value)
-
-	// Get the variable name
-	ident, ok = assignStmt.Lhs[0].(*ast.Ident)
-	if !ok {
-		return
-	}
-
-	varName := ident.Name
-	packagePath := g.formatPackagePath(filepath.Dir(filePath), packageName)
-	// Record the variable association with package name as prefix
-	key := packagePath + "." + varName
-	var bundle *Bundle
-	if b, ok := g.Bundles[key]; ok {
-		bundle = b
-	} else {
-		bundle = newBundle()
-	}
-	bundle.Key = key
-	bundle.Name = bundleName
-	bundle.VarName = varName
-	bundle.FilePath = filePath
-	bundle.PackageName = packageName
-	bundle.PackagePath = packagePath
-
-	// Check all arguments for function literals (OptionsFunc)
-	for _, arg := range callExpr.Args[1:] {
-		// Try to extract options from function literal
-		if funLit, ok := arg.(*ast.FuncLit); ok {
-			// Get the parameter name from the function literal
-			paramName := getOptionsParamName(funLit)
-			if paramName != "" {
-				// Look for assignments to opts fields
-				ast.Inspect(funLit, func(n ast.Node) bool {
-					// Look for assignment statements
-					assignStmt, ok := n.(*ast.AssignStmt)
-					if !ok {
-						return true
-					}
-
-					// Check for assignments to fields of opts
-					for i, lhs := range assignStmt.Lhs {
-						// Check if this is a selector expression (e.g., opts.DefaultLang)
-						selExpr, ok := lhs.(*ast.SelectorExpr)
-						if !ok {
-							continue
-						}
-
-						// Check if the receiver is the parameter name
-						ident, ok := selExpr.X.(*ast.Ident)
-						if !ok || ident.Name != paramName {
-							continue
-						}
-
-						// Extract the value being assigned
-						rhs := assignStmt.Rhs[i]
-						lit, ok := rhs.(*ast.BasicLit)
-						if !ok || lit.Kind != token.STRING {
-							continue
-						}
-
-						// Clean the string literal (remove quotes)
-						value := lit.Value
-						if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
-							// Unquote the string
-							unquoted, err := strconv.Unquote(value)
-							if err != nil {
-								// If unquoting fails, just remove the quotes
-								value = value[1 : len(value)-1]
-							} else {
-								value = unquoted
-							}
-						}
-
-						// Set the appropriate field based on the selector
-						switch selExpr.Sel.Name {
-						case "DefaultLang":
-							bundle.opts.DefaultLang = value
-						case "ResourcesPath":
-							bundle.opts.ResourcesPath = value
-						}
-					}
-
-					return true
-				})
-			}
+	// Check if the function name is "SetDefaultLanguage"
+	if selExpr.Sel.Name == "SetDefaultLanguage" {
+		// Check if it has at least 1 argument
+		if len(callExpr.Args) < 1 {
+			return
 		}
+
+		// Extract the bundle name (first argument)
+		lit, ok := callExpr.Args[0].(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return
+		}
+
+		// Clean the string literal (remove quotes)
+		g_DefaultLanguage = Unquote(lit.Value)
+		return
 	}
 
-	// Record the bundle
-	g.Bundles[key] = bundle
+	// Check if the function name is "SetResourcesDir"
+	if selExpr.Sel.Name == "SetResourcesDir" {
+		// Check if it has at least 1 argument
+		if len(callExpr.Args) < 1 {
+			return
+		}
+
+		// Extract the bundle name (first argument)
+		lit, ok := callExpr.Args[0].(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return
+		}
+
+		// Clean the string literal (remove quotes)
+		g_ResourcesDir = Unquote(lit.Value)
+		return
+	}
+
+	// Check if the function name is "New"
+	if selExpr.Sel.Name == "New" {
+		// Check if it has at least 1 argument (bundle name)
+		if len(callExpr.Args) < 1 {
+			return
+		}
+
+		// Extract the bundle name (first argument)
+		lit, ok := callExpr.Args[0].(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return
+		}
+
+		// Clean the string literal (remove quotes)
+		bundleName := Unquote(lit.Value)
+
+		// Get the variable name
+		ident, ok = assignStmt.Lhs[0].(*ast.Ident)
+		if !ok {
+			return
+		}
+
+		bundle := g.Bundle(bundleName)
+		bundle.AddVarDefine(
+			ident.Name,
+			filePath,
+			packageName,
+			g.formatPackagePath(filepath.Dir(filePath), packageName),
+		)
+		return
+	}
+
+	// Check if the function name is "Str" or "Err"
+	if selExpr.Sel.Name == "Str" || selExpr.Sel.Name == "Err" {
+		// Check if it has at least 2 argument
+		if len(callExpr.Args) < 2 {
+			return
+		}
+
+		// Extract the bundle name (first argument)
+		lit, ok := callExpr.Args[0].(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return
+		}
+
+		// Clean the string literal (remove quotes)
+		bundleName := Unquote(lit.Value)
+
+		bundle := g.Bundle(bundleName)
+
+		// Extract the bundle name (first argument)
+		lit, ok = callExpr.Args[1].(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return
+		}
+
+		// Clean the string literal (remove quotes)
+		transKey := Unquote(lit.Value)
+		bundle.AddTrans(transKey)
+		return
+	}
+
 }
 
 // collectDefinitions collects format strings from Bundle.Str and Bundle.Err method calls
@@ -387,10 +403,9 @@ func (g *Generator) collectDefinitions(f *ast.File) {
 			packagePath = g.formatPackagePath(f.Name.Name, f.Name.Name)
 		}
 
-		// Create key using the found package path
-		key := packagePath + "." + bundleVarName
-		bundle, exists := g.Bundles[key]
-		if !exists {
+		// Find bundle by var definition
+		bundle := g.GetBundleByVar(packagePath, bundleVarName)
+		if bundle == nil {
 			return true
 		}
 
@@ -399,32 +414,12 @@ func (g *Generator) collectDefinitions(f *ast.File) {
 		if lit, ok := firstArg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			// Argument is a string literal
 			// Remove quotes and add to bundle definitions
-			definition := Unquote(lit.Value)
-			bundle.AddDefinition(definition)
+			tranKey := Unquote(lit.Value)
+			bundle.AddTrans(tranKey)
 		}
 
 		return true
 	})
-}
-
-// getOptionsParamName extracts the parameter name from a function literal
-// that matches the OptionsFunc pattern func(opts *i18n.Options)
-func getOptionsParamName(funLit *ast.FuncLit) string {
-	// Check if the function has exactly one parameter
-	if funLit.Type.Params == nil || len(funLit.Type.Params.List) != 1 {
-		return ""
-	}
-
-	// Get the first parameter
-	param := funLit.Type.Params.List[0]
-
-	// Check if it has a name
-	if len(param.Names) == 0 {
-		return ""
-	}
-
-	// Return the parameter name
-	return param.Names[0].Name
 }
 
 // formatPackagePath constructs the full package path from file path, module directory and module path

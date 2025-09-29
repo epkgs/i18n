@@ -140,12 +140,6 @@ func someHandler(c *gin.Context) {
 ### Bundle
 The main component for managing translations.
 ```go
-// Create a new bundle
-bundle := i18n.NewBundle("domain", func(opts *i18n.Options) {
-    opts.DefaultLang = "en"        // Default language
-    opts.ResourcesPath = "locales" // Path to translation files
-})
-
 // Create a translatable string
 str := bundle.Str("Hello %s", "world")
 
@@ -210,7 +204,7 @@ go install github.com/epkgs/i18n/i18ntool@latest
 # Generate/update translation files
 i18ntool extract
 ```
-This tool scans your code for bundle.Str() and bundle.Err() calls and automatically creates or updates the JSON translation files.
+This tool scans your code for i18n.Str() and i18n.Err() calls and automatically creates or updates the JSON translation files.
 
 
 ## 📄 License
