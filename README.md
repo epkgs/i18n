@@ -11,19 +11,23 @@ A simple yet powerful internationalization library for Go applications with supp
 - ✅ Gin middleware for HTTP applications
 - ✅ Internationalized error handling
 - ✅ Thread-safe bundle caching
+- ✅ CLI tool for extracting translation keys from source code
 
 ## 🧱 Project Structure
 
 ```bash
 i18n/
+├── cmd/
+│   └── i18ncli/           # CLI tool for extracting translation keys
 ├── errors/                # Error handling package
 ├── examples/              # Usage examples
-├── i18ntool/              # CLI tool for managing translations
+│   ├── simple/            # Basic usage example
+│   └── i18n-errors/       # Internationalized error handling example
 ├── i18n_bundle.go         # Main bundle implementation
 ├── i18n_context.go        # Context handling for language preferences
 ├── i18n_interface.go      # Interface definitions
 ├── i18n_middleware.go     # Gin middleware for language detection
-├── i18n_string.go         # String translation implementation
+├── i18n_stringer.go       # String translation implementation
 └── i18n_utils.go          # Utility functions
 ```
 
@@ -37,15 +41,11 @@ package locales
 
 import "github.com/epkgs/i18n"
 
-var User = i18n.NewBundle("user", func(opts *i18n.Options) {
-    opts.DefaultLang = "en"
-    opts.ResourcesPath = "locales"
-})
+var User = i18n.Bundle("user")
 ```
 
 ### 2. Create translation files
 Create JSON translation files in your resources directory:
-
 
 ```bash
 locales/
@@ -195,17 +195,22 @@ Each JSON file contains key-value pairs where the key is the original string and
 }
 ```
 
-## 🧰 i18n Tool
-The project includes a CLI tool to help manage translations:
+## 🧰 i18n CLI Tool
+The project includes a CLI tool to help extract translation keys from your source code:
+
 ```bash
-# install
-go install github.com/epkgs/i18n/i18ntool@latest
+# Install the CLI tool
+go install github.com/epkgs/i18n/cmd/i18ncli@latest
 
-# Generate/update translation files
-i18ntool extract
+# Extract translation keys from your project
+i18ncli extract
+
+# You can also use go generate, as shown in the examples
+//go:generate i18ncli extract
 ```
-This tool scans your code for i18n.Str() and i18n.Err() calls and automatically creates or updates the JSON translation files.
 
+This tool scans your Go source files for `i18n.Bundle("name").Str()` and `i18n.Bundle("name").Err()` calls, 
+extracts the format strings, and automatically creates or updates the translation files.
 
 ## 📄 License
 This project is licensed under the MIT License.
