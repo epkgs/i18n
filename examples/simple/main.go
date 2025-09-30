@@ -8,7 +8,7 @@ import (
 	"github.com/epkgs/i18n/examples/simple/locales"
 )
 
-//go:generate go run ../../i18ntool extract
+//go:generate go run ../../cmd/i18ncli extract
 
 func main() {
 

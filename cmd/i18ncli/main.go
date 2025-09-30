@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/epkgs/i18n/i18ntool/internal"
+	"github.com/epkgs/i18n/cmd/i18ncli/internal"
 	"github.com/spf13/cobra"
 )
 
@@ -38,21 +38,19 @@ func extractCmd() *cobra.Command {
 		Short: "Extract translation definitions by scanning source code",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			searchPath, err := cmd.Flags().GetString("path")
-			if err != nil {
-				return err
-			}
-
+			searchPath, _ := cmd.Flags().GetString("path")
 			langs, _ := cmd.Flags().GetStringSlice("lang")
+			output, _ := cmd.Flags().GetString("output")
+			fileType, _ := cmd.Flags().GetString("file-type")
 
 			g := internal.NewGenerator(searchPath)
 
-			if err := g.CollectBundles(); err != nil {
+			if err := g.Walk(); err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
 
-			if err := g.GenerateTranslations(langs...); err != nil {
+			if err := g.GenerateTranslationFiles(fileType, output, langs...); err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
@@ -65,6 +63,8 @@ func extractCmd() *cobra.Command {
 
 	cmd.Flags().StringP("path", "p", ".", "Path to search for Go source files")
 	cmd.Flags().StringSliceP("lang", "l", []string{}, "Languages to generate translations for")
+	cmd.Flags().StringP("output", "o", "locales", "Output directory for generated translation files")
+	cmd.Flags().StringP("file-type", "f", "json", "File type for generated translation files")
 
 	return cmd
 }

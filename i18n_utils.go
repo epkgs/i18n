@@ -3,43 +3,13 @@ package i18n
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"reflect"
-	"strings"
 	"text/template"
 
 	"github.com/epkgs/i18n/errors"
 	"golang.org/x/text/language"
 	"gopkg.in/ini.v1"
 )
-
-// isFileExist checks if a file exists at the given path
-func isFileExist(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil || os.IsExist(err)
-}
-
-// langIDCache caches formatted language identifiers
-var langIDCache = map[string]string{}
-
-// formatLangID formats a language identifier by replacing hyphens with underscores
-// and caches the result for performance
-func formatLangID(lang string) string {
-	id, ok := langIDCache[lang]
-	if ok {
-		return id
-	}
-
-	tag, err := language.Parse(lang)
-	if err == nil {
-		id = tag.String()
-	} else {
-		id = strings.Replace(lang, "_", "-", -1)
-	}
-
-	langIDCache[lang] = id
-	return id
-}
 
 // paser is a template parser for internationalization
 var paser = template.New("i18n")
