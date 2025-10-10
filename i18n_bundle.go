@@ -38,6 +38,20 @@ func (b *i18nBundle) Str(txt string, args ...any) Stringer {
 	return newString(b, txt, args...)
 }
 
+// NStr selects singular or plural form of string based on quantity and formats it
+//   - isOne: boolean value to determine whether to use singular form
+//   - one: singular form string template
+//   - others: plural form string template
+//   - args: variable arguments for string formatting
+//
+// Returns: translatable Stringer interface
+func (b *i18nBundle) NStr(isOne bool, one, others string, args ...any) Stringer {
+	if isOne {
+		return b.Str(one, args...)
+	}
+	return b.Str(others, args...)
+}
+
 // Err creates and returns an internationalizable error object
 //   - txt: the original error text to be translated
 //   - args: arguments used to replace placeholders in the text
@@ -45,6 +59,21 @@ func (b *i18nBundle) Str(txt string, args ...any) Stringer {
 // Returns an errors.Error interface that includes internationalization capabilities
 func (b *i18nBundle) Err(txt string, args ...any) errors.Error {
 	return errors.New(b.Str(txt, args...))
+}
+
+// NErr selects singular or plural form of string based on quantity and formats it
+//   - isOne: boolean value to determine whether to use singular form
+//   - one: singular form string template
+//   - others: plural form string template
+//   - args: variable arguments for string formatting
+//
+// Returns: translatable errors.Error interface
+func (b *i18nBundle) NErr(isOne bool, one, others string, args ...any) errors.Error {
+	if isOne {
+		return b.Err(one, args...)
+	} else {
+		return b.Err(others, args...)
+	}
 }
 
 // translate translates the given format string based on language preferences in the context

@@ -249,10 +249,8 @@ func (g *Generator) collectBundleTranslations(f *ParsedFile) {
 					// 检查是否是 i18n.Bundle().Str() 形式（直接链式调用）
 					if funCall, isFunCall := selectorExpr.X.(*ast.CallExpr); isFunCall {
 						if bundleName := extractBundleName(funCall, f.I18nAlias); bundleName != "" {
-							if transKey := getCallArgString(callExpr, 0); transKey != "" {
-								bundle := g.getBundleOrNew(bundleName)
-								bundle.AddTrans(transKey)
-							}
+							bundle := g.getBundleOrNew(bundleName)
+							g.addBundleStr(bundle, callExpr)
 						}
 						return true
 					}
@@ -261,9 +259,7 @@ func (g *Generator) collectBundleTranslations(f *ParsedFile) {
 					if ident, isIdent := selectorExpr.X.(*ast.Ident); isIdent {
 						// 首先在当前包中查找变量
 						if bundle, err := g.getBundleByVar(f.Pkg, ident.Name); err == nil {
-							if transKey := getCallArgString(callExpr, 0); transKey != "" {
-								bundle.AddTrans(transKey)
-							}
+							g.addBundleStr(bundle, callExpr)
 						}
 						return true
 					}
@@ -273,9 +269,39 @@ func (g *Generator) collectBundleTranslations(f *ParsedFile) {
 						if xIdent, isXIdent := selector.X.(*ast.Ident); isXIdent {
 							pkgPath := findPkgByID(f.Ast, xIdent.Name)
 							if bundle, err := g.getBundleByVar(pkgPath, selector.Sel.Name); err == nil {
-								if transKey := getCallArgString(callExpr, 0); transKey != "" {
-									bundle.AddTrans(transKey)
-								}
+								g.addBundleStr(bundle, callExpr)
+							}
+						}
+					}
+					return true
+				}
+
+				// 检查是否是 NStr 或 NErr 方法调用
+				if methodName == "NStr" || methodName == "NErr" {
+					// 检查是否是 i18n.Bundle().NStr() 形式（直接链式调用）
+					if funCall, isFunCall := selectorExpr.X.(*ast.CallExpr); isFunCall {
+						if bundleName := extractBundleName(funCall, f.I18nAlias); bundleName != "" {
+							bundle := g.getBundleOrNew(bundleName)
+							g.addBundleNStrs(bundle, callExpr)
+						}
+						return true
+					}
+
+					// 检查是否是变量调用形式 bundleVar.NStr()
+					if ident, isIdent := selectorExpr.X.(*ast.Ident); isIdent {
+						// 首先在当前包中查找变量
+						if bundle, err := g.getBundleByVar(f.Pkg, ident.Name); err == nil {
+							g.addBundleNStrs(bundle, callExpr)
+						}
+						return true
+					}
+
+					// 处理嵌套选择器，如 locales.User.NStr()
+					if selector, isSelector := selectorExpr.X.(*ast.SelectorExpr); isSelector {
+						if xIdent, isXIdent := selector.X.(*ast.Ident); isXIdent {
+							pkgPath := findPkgByID(f.Ast, xIdent.Name)
+							if bundle, err := g.getBundleByVar(pkgPath, selector.Sel.Name); err == nil {
+								g.addBundleNStrs(bundle, callExpr)
 							}
 						}
 					}
@@ -375,4 +401,21 @@ func (g *Generator) parseFiles() (map[string]*ParsedFile, error) {
 	})
 
 	return parsedFiles, err
+}
+
+func (g *Generator) addBundleStr(b *Bundle, callExpr *ast.CallExpr) {
+	if transKey := getCallArgString(callExpr, 0); transKey != "" {
+		b.AddTrans(transKey)
+	}
+}
+
+func (g *Generator) addBundleNStrs(b *Bundle, callExpr *ast.CallExpr) {
+	// singular
+	if singular := getCallArgString(callExpr, 1); singular != "" {
+		b.AddTrans(singular)
+	}
+	// plural
+	if plural := getCallArgString(callExpr, 2); plural != "" {
+		b.AddTrans(plural)
+	}
 }

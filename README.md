@@ -58,14 +58,18 @@ locales/
 Example `locales/en/user.json`:
 ```json
 {
-  "User %s not exist": "User %s does not exist"
+  "User %s not exist": "User %s does not exist",
+  "%d item found": "%d item found",
+  "%d items found": "%d items found"
 }
 ```
 
 Example `locales/zh-CN/user.json`:
 ```json
 {
-  "User %s not exist": "用户 %s 不存在"
+  "User %s not exist": "用户 %s 不存在",
+  "%d item found": "找到 %d 个项目",
+  "%d items found": "找到 %d 个项目"
 }
 ```
 
@@ -94,6 +98,11 @@ func main() {
     
     // Get translated string
     fmt.Printf("Translated: %s\n", message.T(ctx))
+    
+    // Using singular/plural forms
+    itemCount := 1
+    pluralMessage := locales.User.NStr(itemCount == 1, "%d item found", "%d items found", itemCount)
+    fmt.Printf("Plural Translated: %s\n", pluralMessage.T(ctx))
 }
 ```
 
@@ -133,6 +142,11 @@ func someHandler(c *gin.Context) {
     err := locales.User.Err("User %s not exist", "alice")
     // err implements error interface and can be translated
     response.Fail(c, err)
+    
+    // Using singular/plural forms for errors
+    itemCount := 0
+    pluralErr := locales.User.NErr(itemCount == 1, "%d item found", "%d items found", itemCount)
+    response.Fail(c, pluralErr)
 }
 ```
 
@@ -145,6 +159,16 @@ str := bundle.Str("Hello %s", "world")
 
 // Create an internationalized error
 err := bundle.Err("Something went wrong: %s", details)
+
+// Create a translatable string with singular/plural forms
+itemCount := 1
+str := bundle.NStr(itemCount == 1, "%d item found", "%d items found", itemCount)
+
+// Create an internationalized error with singular/plural forms
+import "github.com/epkgs/i18n/plural"
+
+itemCount := 5
+err := bundle.NErr(plural.IsOne(itemCount), "%d item found", "%d items found", itemCount)
 ```
 
 ### Context Integration
@@ -191,7 +215,9 @@ Each JSON file contains key-value pairs where the key is the original string and
 {
   "Welcome %s": "欢迎 %s",
   "User not found": "用户未找到",
-  "Invalid input": "输入无效"
+  "Invalid input": "输入无效",
+  "%d item found": "找到 %d 个项目",
+  "%d items found": "找到 %d 个项目"
 }
 ```
 
@@ -209,7 +235,7 @@ i18ncli extract
 //go:generate i18ncli extract
 ```
 
-This tool scans your Go source files for `i18n.Bundle("name").Str()` and `i18n.Bundle("name").Err()` calls, 
+This tool scans your Go source files for `Str`, `NStr`, `Err` and `NErr` calls of `i18n.Bundle`, 
 extracts the format strings, and automatically creates or updates the translation files.
 
 ## 📄 License
