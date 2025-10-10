@@ -48,10 +48,9 @@ func NewKV(langKeyValues map[string]map[string]string, config ...func(c *Config)
 		i++
 	}
 
-	n.loader = func(bundle string) (*Matcher, map[language.Tag]map[string]string) {
+	n.loader = func(bundle string) map[language.Tag]map[string]string {
 
 		limit := n.limitLanguages
-		matcher := newMatcher(append([]language.Tag{n.defaultLanguage}, languages...))
 		trans := map[language.Tag]map[string]string{}
 		for lang, kv := range langKeyValues {
 
@@ -66,7 +65,7 @@ func NewKV(langKeyValues map[string]map[string]string, config ...func(c *Config)
 			trans[tag] = kv
 		}
 
-		return matcher, trans
+		return trans
 	}
 
 	return n, nil

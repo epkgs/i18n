@@ -9,20 +9,18 @@ import (
 
 // i18nBundle represents an internationalization bundle containing translations for different languages
 type i18nBundle struct {
-	Name    string
-	trans   map[language.Tag]map[string]string // language identifier -> default text -> translated text
-	matcher *Matcher
+	Name  string
+	trans map[language.Tag]map[string]string // language identifier -> default text -> translated text
 
-	load Loader
-
+	i18n     *I18n
 	loadOnce *sync.Once
 }
 
-func newBundle(name string, loader Loader) Bundler {
+func newBundle(i18n *I18n, name string) Bundler {
 	b := &i18nBundle{
 		Name:     name,
 		trans:    map[language.Tag]map[string]string{},
-		load:     loader,
+		i18n:     i18n,
 		loadOnce: &sync.Once{},
 	}
 
@@ -99,16 +97,16 @@ func (b *i18nBundle) getTranslation(tags []language.Tag, key string) string {
 
 	b.lazyLoad()
 
-	if len(b.matcher.Languages) == 0 {
+	if len(b.i18n.matcher.Languages) == 0 {
 		return key
 	}
 
-	_, i, _ := b.matcher.Match(tags...)
-	lang := b.matcher.Languages[i]
+	_, i, _ := b.i18n.matcher.Match(tags...)
+	lang := b.i18n.matcher.Languages[i]
 
 	trans, exist := b.trans[lang]
 	if !exist {
-		defaultLanguage := b.matcher.Languages[0]
+		defaultLanguage := b.i18n.matcher.Languages[0]
 		trans, exist = b.trans[defaultLanguage]
 		if !exist {
 			return key
@@ -122,34 +120,9 @@ func (b *i18nBundle) getTranslation(tags []language.Tag, key string) string {
 	return key
 }
 
-func (b *i18nBundle) SetDefault(langCode string) bool {
-
-	t, err := language.Parse(langCode)
-	if err != nil {
-		return false
-	}
-
-	languages := b.matcher.Languages
-	idx := indexOf(languages, t)
-
-	if idx == -1 {
-		languages = append([]language.Tag{t}, languages...)
-	} else {
-		old := languages[0]
-		languages[0] = t
-		languages[idx] = old
-	}
-
-	b.matcher = newMatcher(languages)
-
-	return true
-}
-
 func (b *i18nBundle) lazyLoad() {
 	b.loadOnce.Do(func() {
-		matcher, trans := b.load(b.Name)
-		b.matcher = matcher
-		b.trans = trans
+		b.trans = b.i18n.loader(b.Name)
 	})
 }
 

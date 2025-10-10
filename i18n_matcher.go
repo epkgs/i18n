@@ -10,9 +10,10 @@ type Matcher struct {
 
 var _ language.Matcher = (*Matcher)(nil)
 
-func newMatcher(langs []language.Tag) *Matcher {
+func newMatcher(defaultLanguage language.Tag, limits ...language.Tag) *Matcher {
+	langs := append([]language.Tag{defaultLanguage}, limits...)
 	return &Matcher{
-		strict:    len(langs) > 0,
+		strict:    len(limits) > 0,
 		Languages: langs,
 		matcher:   language.NewMatcher(langs),
 	}

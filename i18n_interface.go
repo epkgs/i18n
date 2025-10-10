@@ -17,12 +17,10 @@ type Bundler interface {
 	// Err returns an error instance with the given text
 	Err(text string, args ...any) errors.Error
 
-	SetDefault(langCode string) bool
-
 	Reload()
 }
 
-type Loader func(bundle string) (*Matcher, map[language.Tag]map[string]string)
+type Loader func(bundle string) map[language.Tag]map[string]string
 
 // Translatable is an interface that provides translation capability
 // Implementations of this interface can translate content based on context language preferences

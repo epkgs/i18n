@@ -16,6 +16,7 @@ type I18n struct {
 
 	defaultLanguage language.Tag
 	limitLanguages  []language.Tag
+	matcher         *Matcher
 	loader          Loader
 
 	bundles map[string]Bundler
@@ -36,20 +37,38 @@ func newI18n(config ...func(c *Config)) *I18n {
 		f(cfg)
 	}
 
-	return &I18n{
+	n := &I18n{
 		cfg:             cfg,
 		defaultLanguage: parseLanguageTag(cfg.DefaultLanguage),
 		limitLanguages:  parseLanguageTags(cfg.Languages...),
 		bundles:         map[string]Bundler{},
 	}
+
+	n.matcher = newMatcher(n.defaultLanguage, n.limitLanguages...)
+
+	return n
 }
 
 func (n *I18n) SetDefault(langCode string) bool {
-	for _, b := range n.bundles {
-		if !b.SetDefault(langCode) {
-			return false
-		}
+
+	t, err := language.Parse(langCode)
+	if err != nil {
+		return false
 	}
+
+	languages := n.matcher.Languages
+	idx := indexOf(languages, t)
+
+	if idx == -1 {
+		languages = append([]language.Tag{t}, languages...)
+	} else {
+		old := languages[0]
+		languages[0] = t
+		languages[idx] = old
+	}
+
+	n.matcher.Languages = languages
+	n.matcher.matcher = language.NewMatcher(languages)
 
 	return true
 }
@@ -60,7 +79,7 @@ func (n *I18n) Bundle(name string) Bundler {
 		return b
 	}
 
-	b := newBundle(name, n.loader)
+	b := newBundle(n, name)
 
 	n.bundles[name] = b
 	return b
@@ -74,10 +93,9 @@ func (n *I18n) Reload() {
 
 func (n *I18n) generateLoader(filePaths []string, readFile func(file string) ([]byte, error)) Loader {
 
-	return func(bundle string) (*Matcher, map[language.Tag]map[string]string) {
+	return func(bundle string) map[language.Tag]map[string]string {
 
 		limit := n.limitLanguages
-		matcher := newMatcher(append([]language.Tag{n.defaultLanguage}, limit...))
 		trans := map[language.Tag]map[string]string{}
 
 		for _, fpath := range filePaths {
@@ -117,8 +135,8 @@ func (n *I18n) generateLoader(filePaths []string, readFile func(file string) ([]
 				continue
 			}
 
-			_, i, _ := matcher.MatchOrAdd(tag)
-			tag = matcher.Languages[i]
+			_, i, _ := n.matcher.MatchOrAdd(tag)
+			tag = n.matcher.Languages[i]
 
 			var unmarshal func(data []byte, v any) error
 			switch ext {
@@ -155,6 +173,6 @@ func (n *I18n) generateLoader(filePaths []string, readFile func(file string) ([]
 			}
 		}
 
-		return matcher, trans
+		return trans
 	}
 }
