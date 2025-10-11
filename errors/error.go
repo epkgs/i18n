@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/epkgs/i18n/types"
 	pkgErrors "github.com/pkg/errors"
 )
 
@@ -46,7 +47,7 @@ type i18nError struct {
 
 // New creates and returns a new Error with the given message
 // The message can be a string, fmt.Stringer, or any other type
-func New(msg any) Error {
+func New(msg any) types.Error {
 	return &i18nError{
 		msg:   toStringer(msg),
 		extra: map[string]any{},
@@ -56,18 +57,18 @@ func New(msg any) Error {
 
 // Errorf creates and returns a new Error with formatted message
 // It uses fmt.Sprintf to format the message with the given arguments
-func Errorf(format string, args ...any) Error {
+func Errorf(format string, args ...any) types.Error {
 	return New(fmt.Sprintf(format, args...))
 }
 
 // WithStack wraps an error with stack trace information
 // If the error is already an Error, it adds stack trace to it
 // Otherwise, it creates a new Error with the given error as cause
-func WithStack(err error) Error {
+func WithStack(err error) types.Error {
 	if err == nil {
 		return nil
 	}
-	if e, ok := err.(Error); ok {
+	if e, ok := err.(types.Error); ok {
 		return e.WithStack()
 	}
 	return Wrap(err, "")
@@ -75,7 +76,7 @@ func WithStack(err error) Error {
 
 // Wrap creates a new Error that wraps another error with an additional message
 // If the error is nil, it returns nil
-func Wrap(err error, message string) Error {
+func Wrap(err error, message string) types.Error {
 	if err == nil {
 		return nil
 	}
@@ -103,11 +104,26 @@ func (e *i18nError) Error() string {
 // T returns the translated error message based on context language preferences
 // If the message does not support translation, it returns the default string representation
 func (e *i18nError) T(ctx context.Context) string {
-	if tran, ok := e.msg.(interface {
+
+	type translator interface {
 		T(ctx context.Context) string
-	}); ok {
+	}
+
+	if tran, ok := e.msg.(translator); ok {
 		return tran.T(ctx)
 	}
+	return e.msg.String()
+}
+
+func (e *i18nError) TL(langs ...string) string {
+	type translator interface {
+		TL(langs ...string) string
+	}
+
+	if tran, ok := e.msg.(translator); ok {
+		return tran.TL(langs...)
+	}
+
 	return e.msg.String()
 }
 
@@ -131,14 +147,14 @@ func (e *i18nError) clone() *i18nError {
 // It takes a message parameter of any type, converts it to a string representation,
 // and creates a new error object that retains all properties of the original error
 // (such as stack trace, extra data, etc.) but uses the new message content.
-func (e *i18nError) WithMsg(msg any) Error {
+func (e *i18nError) WithMsg(msg any) types.Error {
 	err := e.clone()
 	err.msg = toStringer(msg)
 	return err
 }
 
 // WithStack returns a copy of the error with a new stack trace
-func (e *i18nError) WithStack() Error {
+func (e *i18nError) WithStack() types.Error {
 	err := e.clone()
 	err.stack = callers()
 	return err
@@ -146,7 +162,7 @@ func (e *i18nError) WithStack() Error {
 
 // Wrap returns a copy of the error with the given cause error
 // It also adds a new stack trace
-func (e *i18nError) Wrap(cause error) Error {
+func (e *i18nError) Wrap(cause error) types.Error {
 	err := e.clone()
 	err.cause = cause
 	err.stack = callers()

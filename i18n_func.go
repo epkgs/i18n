@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/epkgs/i18n/internal"
+	"github.com/epkgs/i18n/types"
 	"golang.org/x/text/language"
 )
 
@@ -76,7 +77,7 @@ func SetDefaultLanguage(lang string) {
 	defaultI18n.SetDefault(lang)
 }
 
-func Bundle(name string) Bundler {
+func Bundle(name string) types.Bundler {
 	return defaultI18n.Bundle(name)
 }
 

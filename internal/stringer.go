@@ -2,20 +2,22 @@ package internal
 
 import (
 	"context"
+
+	"github.com/epkgs/i18n/types"
 )
 
 // i18nString represents an internationalizable string structure containing the context and parameters needed for translation
 type i18nString struct {
-	b    Bundler // Pointer to the internationalization bundle instance for handling translations in different languages
-	txt  string  // Raw text content
-	args []any   // List of arguments passed to the text for formatting
+	b    *i18nBundle // Pointer to the internationalization bundle instance for handling translations in different languages
+	txt  string      // Raw text content
+	args []any       // List of arguments passed to the text for formatting
 }
 
 // NewString creates and returns a new i18nString instance
 //   - b:   Bundle instance used for internationalization
 //   - txt: Text to be translated
 //   - args: Arguments used to replace placeholders in the text
-func NewString(b Bundler, txt string, args ...any) Stringer {
+func NewString(b *i18nBundle, txt string, args ...any) types.Stringer {
 	return &i18nString{
 		b:    b,
 		txt:  txt,

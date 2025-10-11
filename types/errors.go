@@ -1,13 +1,8 @@
-package errors
+package types
 
 import (
-	"context"
 	"fmt"
 )
-
-type Translatable interface {
-	T(ctx context.Context) string
-}
 
 type Storager interface {
 	Set(key string, value any)
@@ -26,6 +21,6 @@ type Error interface {
 	Is(err error) bool
 
 	fmt.Stringer
-	Translatable
+	Translator
 	Storager
 }

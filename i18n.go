@@ -8,6 +8,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/epkgs/i18n/internal"
+	"github.com/epkgs/i18n/types"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 )
@@ -19,7 +20,7 @@ type I18n struct {
 	limitLanguages  []language.Tag
 
 	loader  internal.Loader
-	bundles map[string]Bundler
+	bundles map[string]types.Bundler
 }
 
 type Config struct {
@@ -41,7 +42,7 @@ func newI18n(config ...func(c *Config)) *I18n {
 		cfg:             cfg,
 		defaultLanguage: internal.ParseLanguageTag(cfg.DefaultLanguage),
 		limitLanguages:  internal.ParseLanguageTags(cfg.Languages...),
-		bundles:         map[string]Bundler{},
+		bundles:         map[string]types.Bundler{},
 	}
 
 	return n
@@ -63,7 +64,7 @@ func (n *I18n) SetDefault(langCode string) bool {
 	return true
 }
 
-func (n *I18n) Bundle(name string) Bundler {
+func (n *I18n) Bundle(name string) types.Bundler {
 
 	if b, ok := n.bundles[name]; ok {
 		return b

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/epkgs/i18n/errors"
+	"github.com/epkgs/i18n/types"
 	"golang.org/x/text/language"
 )
 
@@ -18,7 +19,7 @@ type i18nBundle struct {
 	loadOnce *sync.Once
 }
 
-func NewBundle(name string, matcher *Matcher, loader Loader) Bundler {
+func NewBundle(name string, matcher *Matcher, loader Loader) types.Bundler {
 	b := &i18nBundle{
 		Name:     name,
 		trans:    map[language.Tag]map[string]string{},
@@ -35,7 +36,7 @@ func NewBundle(name string, matcher *Matcher, loader Loader) Bundler {
 //   - args: arguments used to replace placeholders in the text
 //
 // Returns a Stringer interface that can handle internationalization
-func (b *i18nBundle) Str(txt string, args ...any) Stringer {
+func (b *i18nBundle) Str(txt string, args ...any) types.Stringer {
 	return NewString(b, txt, args...)
 }
 
@@ -45,8 +46,8 @@ func (b *i18nBundle) Str(txt string, args ...any) Stringer {
 //   - others: plural form string template
 //   - args: variable arguments for string formatting
 //
-// Returns: translatable Stringer interface
-func (b *i18nBundle) NStr(isOne bool, one, others string, args ...any) Stringer {
+// Returns: translatable types. interface
+func (b *i18nBundle) NStr(isOne bool, one, others string, args ...any) types.Stringer {
 	if isOne {
 		return b.Str(one, args...)
 	}
@@ -57,8 +58,8 @@ func (b *i18nBundle) NStr(isOne bool, one, others string, args ...any) Stringer 
 //   - txt: the original error text to be translated
 //   - args: arguments used to replace placeholders in the text
 //
-// Returns an errors.Error interface that includes internationalization capabilities
-func (b *i18nBundle) Err(txt string, args ...any) errors.Error {
+// Returns an types.Error interface that includes internationalization capabilities
+func (b *i18nBundle) Err(txt string, args ...any) types.Error {
 	return errors.New(b.Str(txt, args...))
 }
 
@@ -68,8 +69,8 @@ func (b *i18nBundle) Err(txt string, args ...any) errors.Error {
 //   - others: plural form string template
 //   - args: variable arguments for string formatting
 //
-// Returns: translatable errors.Error interface
-func (b *i18nBundle) NErr(isOne bool, one, others string, args ...any) errors.Error {
+// Returns: translatable types.Error interface
+func (b *i18nBundle) NErr(isOne bool, one, others string, args ...any) types.Error {
 	if isOne {
 		return b.Err(one, args...)
 	} else {

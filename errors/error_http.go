@@ -1,6 +1,10 @@
 package errors
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/epkgs/i18n/types"
+)
 
 // Default error code and HTTP status
 const (
@@ -12,7 +16,7 @@ const (
 //   - E must implement the Storager interface to store the code
 //
 // Returns the same error with the code set
-func WithCode[E Storager](err E, code int) E {
+func WithCode[E types.Storager](err E, code int) E {
 	err.Set("code", code)
 	return err
 }
@@ -28,7 +32,7 @@ func Code(err error) int {
 		return CodeDefault
 	}
 
-	if storage, ok := err.(Storager); ok {
+	if storage, ok := err.(types.Storager); ok {
 
 		if code, ok := storage.Get("code", CodeDefault).(int); ok {
 			return code
@@ -48,7 +52,7 @@ func Code(err error) int {
 // WithHttpStatus sets a custom HTTP status code on the error
 // E must implement the Storager interface to store the HTTP status
 // Returns the same error with the HTTP status set
-func WithHttpStatus[E Storager](err E, httpStatus int) E {
+func WithHttpStatus[E types.Storager](err E, httpStatus int) E {
 	err.Set("http_status", httpStatus)
 	return err
 }
@@ -64,7 +68,7 @@ func HttpStatus(err error) int {
 		return HttpStatusDefault
 	}
 
-	if storage, ok := err.(Storager); ok {
+	if storage, ok := err.(types.Storager); ok {
 		if status, ok := storage.Get("http_status", HttpStatusDefault).(int); ok {
 			return status
 		}
