@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/epkgs/i18n/internal"
 	"golang.org/x/text/language"
 )
 
@@ -44,11 +45,11 @@ func NewKV(langKeyValues map[string]map[string]string, config ...func(c *Config)
 	languages := make([]language.Tag, len(langKeyValues))
 	i := 0
 	for langCode := range langKeyValues {
-		languages[i] = parseLanguageTag(langCode)
+		languages[i] = internal.ParseLanguageTag(langCode)
 		i++
 	}
 
-	n.loader = func(bundle string) map[language.Tag]map[string]string {
+	n.loader = func(bundleName string, m *internal.Matcher) map[language.Tag]map[string]string {
 
 		limit := n.limitLanguages
 		trans := map[language.Tag]map[string]string{}
@@ -58,7 +59,7 @@ func NewKV(langKeyValues map[string]map[string]string, config ...func(c *Config)
 			if err != nil {
 				continue
 			}
-			if len(limit) > 0 && !includes(limit, tag) {
+			if len(limit) > 0 && !internal.Includes(limit, tag) {
 				continue
 			}
 

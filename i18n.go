@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/epkgs/i18n/internal"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 )
@@ -16,9 +17,8 @@ type I18n struct {
 
 	defaultLanguage language.Tag
 	limitLanguages  []language.Tag
-	matcher         *Matcher
-	loader          Loader
 
+	loader  internal.Loader
 	bundles map[string]Bundler
 }
 
@@ -39,12 +39,10 @@ func newI18n(config ...func(c *Config)) *I18n {
 
 	n := &I18n{
 		cfg:             cfg,
-		defaultLanguage: parseLanguageTag(cfg.DefaultLanguage),
-		limitLanguages:  parseLanguageTags(cfg.Languages...),
+		defaultLanguage: internal.ParseLanguageTag(cfg.DefaultLanguage),
+		limitLanguages:  internal.ParseLanguageTags(cfg.Languages...),
 		bundles:         map[string]Bundler{},
 	}
-
-	n.matcher = newMatcher(n.defaultLanguage, n.limitLanguages...)
 
 	return n
 }
@@ -56,19 +54,11 @@ func (n *I18n) SetDefault(langCode string) bool {
 		return false
 	}
 
-	languages := n.matcher.Languages
-	idx := indexOf(languages, t)
-
-	if idx == -1 {
-		languages = append([]language.Tag{t}, languages...)
-	} else {
-		old := languages[0]
-		languages[0] = t
-		languages[idx] = old
+	for _, b := range n.bundles {
+		if ok := b.SetDefaultLanguage(t); !ok {
+			return false
+		}
 	}
-
-	n.matcher.Languages = languages
-	n.matcher.matcher = language.NewMatcher(languages)
 
 	return true
 }
@@ -79,7 +69,9 @@ func (n *I18n) Bundle(name string) Bundler {
 		return b
 	}
 
-	b := newBundle(n, name)
+	matcher := internal.NewMatcher(n.defaultLanguage, n.limitLanguages...)
+
+	b := internal.NewBundle(name, matcher, n.loader)
 
 	n.bundles[name] = b
 	return b
@@ -91,9 +83,9 @@ func (n *I18n) Reload() {
 	}
 }
 
-func (n *I18n) generateLoader(filePaths []string, readFile func(file string) ([]byte, error)) Loader {
+func (n *I18n) generateLoader(filePaths []string, readFile func(file string) ([]byte, error)) internal.Loader {
 
-	return func(bundle string) map[language.Tag]map[string]string {
+	return func(bundleName string, m *internal.Matcher) map[language.Tag]map[string]string {
 
 		limit := n.limitLanguages
 		trans := map[language.Tag]map[string]string{}
@@ -122,7 +114,7 @@ func (n *I18n) generateLoader(filePaths []string, readFile func(file string) ([]
 				name = filebase
 			}
 
-			if bundle != name {
+			if bundleName != name {
 				continue // skip if bundle name does not match
 			}
 
@@ -131,12 +123,11 @@ func (n *I18n) generateLoader(filePaths []string, readFile func(file string) ([]
 				continue
 			}
 
-			if len(limit) > 0 && !includes(limit, tag) {
+			if len(limit) > 0 && !internal.Includes(limit, tag) {
 				continue
 			}
 
-			_, i, _ := n.matcher.MatchOrAdd(tag)
-			tag = n.matcher.Languages[i]
+			tag = m.MatchOrAdd(tag)
 
 			var unmarshal func(data []byte, v any) error
 			switch ext {
@@ -147,7 +138,7 @@ func (n *I18n) generateLoader(filePaths []string, readFile func(file string) ([]
 			case ".toml", ".tml":
 				unmarshal = toml.Unmarshal
 			case ".ini":
-				unmarshal = unmarshalINI
+				unmarshal = internal.UnmarshalINI
 			default:
 				continue
 			}
@@ -175,4 +166,5 @@ func (n *I18n) generateLoader(filePaths []string, readFile func(file string) ([]
 
 		return trans
 	}
+
 }

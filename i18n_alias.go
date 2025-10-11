@@ -1,12 +1,6 @@
 package i18n
 
-import (
-	"context"
-)
-
-type (
-	acceptLanguagesCtx struct{}
-)
+import "github.com/epkgs/i18n/internal"
 
 // WithAcceptLanguages returns a context with accepted languages.
 // This function is mainly used to add one or more accepted language codes to the context,
@@ -18,11 +12,7 @@ type (
 //
 // Return value:
 //   - Returns a context with accepted languages.
-func WithAcceptLanguages(ctx context.Context, acceptLanguages ...string) context.Context {
-	// Use context.WithValue to add acceptLanguages to ctx.
-	// acceptLanguagesCtx{} is used as the key, which is a type-safe approach to avoid key conflicts.
-	return context.WithValue(ctx, acceptLanguagesCtx{}, acceptLanguages)
-}
+var WithAcceptLanguages = internal.WithAcceptLanguages
 
 // GetAcceptLanguages retrieves the list of accepted languages from the context.
 // This function is mainly used to extract the list of accepted languages from the given context object.
@@ -35,14 +25,4 @@ func WithAcceptLanguages(ctx context.Context, acceptLanguages ...string) context
 //
 // Returns:
 //   - []string: The list of accepted languages, or nil if not found.
-func GetAcceptLanguages(ctx context.Context) []string {
-	// Retrieve the list of accepted languages from the context.
-	v := ctx.Value(acceptLanguagesCtx{})
-	// Check if the retrieved result is nil.
-	if v != nil {
-		// If not nil, assert it as a string slice and return.
-		return v.([]string)
-	}
-	// If nil, return nil.
-	return nil
-}
+var GetAcceptLanguages = internal.GetAcceptLanguages

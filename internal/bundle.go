@@ -1,6 +1,7 @@
-package i18n
+package internal
 
 import (
+	"context"
 	"sync"
 
 	"github.com/epkgs/i18n/errors"
@@ -12,15 +13,17 @@ type i18nBundle struct {
 	Name  string
 	trans map[language.Tag]map[string]string // language identifier -> default text -> translated text
 
-	i18n     *I18n
+	matcher  *Matcher
+	load     Loader
 	loadOnce *sync.Once
 }
 
-func newBundle(i18n *I18n, name string) Bundler {
+func NewBundle(name string, matcher *Matcher, loader Loader) Bundler {
 	b := &i18nBundle{
 		Name:     name,
 		trans:    map[language.Tag]map[string]string{},
-		i18n:     i18n,
+		matcher:  matcher,
+		load:     loader,
 		loadOnce: &sync.Once{},
 	}
 
@@ -33,7 +36,7 @@ func newBundle(i18n *I18n, name string) Bundler {
 //
 // Returns a Stringer interface that can handle internationalization
 func (b *i18nBundle) Str(txt string, args ...any) Stringer {
-	return newString(b, txt, args...)
+	return NewString(b, txt, args...)
 }
 
 // NStr selects singular or plural form of string based on quantity and formats it
@@ -74,22 +77,49 @@ func (b *i18nBundle) NErr(isOne bool, one, others string, args ...any) errors.Er
 	}
 }
 
+func (b *i18nBundle) SetDefaultLanguage(t language.Tag) bool {
+
+	languages := b.matcher.Languages()
+	idx := IndexOf(languages, t)
+
+	if idx == 0 {
+		return true
+	}
+
+	if idx == -1 {
+		languages = append([]language.Tag{t}, languages...)
+	} else {
+		old := languages[0]
+		languages[0] = t
+		languages[idx] = old
+	}
+
+	b.matcher.SetLanguages(languages)
+
+	return true
+}
+
+func (b *i18nBundle) transCtx(ctx context.Context, format string, args ...any) string {
+	langs := GetAcceptLanguages(ctx)
+	return b.transLangs(langs, format, args...)
+}
+
 // translate translates the given format string based on language preferences in the context
-func (b *i18nBundle) translate(langs []string, format string, args ...any) string {
+func (b *i18nBundle) transLangs(langs []string, format string, args ...any) string {
 
 	// Initialize a slice to store parsed language tags
 	tags := []language.Tag{}
 	// Iterate through language codes and attempt to parse them into language tags
 	for _, l := range langs {
 		// Try to parse the current language code into a language tag. If successful, add it to the tags slice
-		if t := parseLanguageTag(l); t != language.Und {
+		if t := ParseLanguageTag(l); t != language.Und {
 			tags = append(tags, t)
 		}
 	}
 
 	translated := b.getTranslation(tags, format)
 
-	return parse(translated, args...)
+	return Parse(translated, args...)
 }
 
 // getTranslation retrieves the translated text for the given original text based on language tags
@@ -97,16 +127,11 @@ func (b *i18nBundle) getTranslation(tags []language.Tag, key string) string {
 
 	b.lazyLoad()
 
-	if len(b.i18n.matcher.Languages) == 0 {
-		return key
-	}
-
-	_, i, _ := b.i18n.matcher.Match(tags...)
-	lang := b.i18n.matcher.Languages[i]
+	lang := b.matcher.Match(tags...)
 
 	trans, exist := b.trans[lang]
 	if !exist {
-		defaultLanguage := b.i18n.matcher.Languages[0]
+		defaultLanguage := b.matcher.DefaultLanguage()
 		trans, exist = b.trans[defaultLanguage]
 		if !exist {
 			return key
@@ -122,7 +147,7 @@ func (b *i18nBundle) getTranslation(tags []language.Tag, key string) string {
 
 func (b *i18nBundle) lazyLoad() {
 	b.loadOnce.Do(func() {
-		b.trans = b.i18n.loader(b.Name)
+		b.trans = b.load(b.Name, b.matcher)
 	})
 }
 

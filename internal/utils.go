@@ -1,4 +1,4 @@
-package i18n
+package internal
 
 import (
 	"bytes"
@@ -11,14 +11,14 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-// paser is a template parser for internationalization
-var paser = template.New("i18n")
+// templateParser is a template parser for internationalization
+var templateParser = template.New("i18n")
 
 // parseTemplate parses a template message with the given argument
 func parseTemplate(msg string, arg1 any) string {
 
 	// Parse struct or map using text/template
-	tmpl, err := paser.Parse(msg)
+	tmpl, err := templateParser.Parse(msg)
 	if err != nil {
 		return msg // Fallback on parse failure
 	}
@@ -34,7 +34,7 @@ func parseTemplate(msg string, arg1 any) string {
 var languageTagCache = make(map[string]language.Tag)
 
 // parseLanguageTag parses a language string into a language.Tag and caches the result
-func parseLanguageTag(lang string) language.Tag {
+func ParseLanguageTag(lang string) language.Tag {
 	if _, exist := languageTagCache[lang]; !exist {
 		t, e := language.Parse(lang)
 		if e != nil {
@@ -47,11 +47,11 @@ func parseLanguageTag(lang string) language.Tag {
 	return languageTagCache[lang]
 }
 
-func parseLanguageTags(langs ...string) []language.Tag {
+func ParseLanguageTags(langs ...string) []language.Tag {
 	tags := make([]language.Tag, len(langs))
 
 	for i, l := range langs {
-		tags[i] = parseLanguageTag(l)
+		tags[i] = ParseLanguageTag(l)
 	}
 
 	return tags
@@ -62,7 +62,7 @@ func parseLanguageTags(langs ...string) []language.Tag {
 //   - Single struct or map: uses template parsing
 //   - Single slice or array: expands elements as separate arguments
 //   - Multiple arguments or other types: uses standard fmt.Sprintf
-func parse(transleted string, args ...any) string {
+func Parse(transleted string, args ...any) string {
 
 	if len(args) == 0 {
 		return transleted
@@ -106,7 +106,7 @@ func parse(transleted string, args ...any) string {
 			for i := 0; i < v.Len(); i++ {
 				slices[i] = v.Index(i).Interface()
 			}
-			return parse(transleted, slices...)
+			return Parse(transleted, slices...)
 
 		default:
 			return fmt.Sprintf(transleted, arg1)
@@ -116,7 +116,7 @@ func parse(transleted string, args ...any) string {
 	return fmt.Sprintf(transleted, args...)
 }
 
-func unmarshalINI(data []byte, val any) error {
+func UnmarshalINI(data []byte, val any) error {
 	f, err := ini.Load(data)
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func unmarshalINI(data []byte, val any) error {
 	return nil
 }
 
-func indexOf[T comparable](slice []T, val T) int {
+func IndexOf[T comparable](slice []T, val T) int {
 	for i, item := range slice {
 		if item == val {
 			return i
@@ -148,6 +148,6 @@ func indexOf[T comparable](slice []T, val T) int {
 	return -1
 }
 
-func includes[T comparable](slice []T, val T) bool {
-	return indexOf(slice, val) >= 0
+func Includes[T comparable](slice []T, val T) bool {
+	return IndexOf(slice, val) >= 0
 }
