@@ -109,7 +109,7 @@ func main() {
     
     // Using singular/plural forms
     itemCount := 1
-    pluralMessage := locales.User.NStr(itemCount == 1, "%d item found", "%d items found", itemCount)
+    pluralMessage := locales.User.NStr(itemCount, "%d item found", "%d items found", itemCount)
     fmt.Printf("Plural Translated: %s\n", pluralMessage.T(ctx))
 }
 ```

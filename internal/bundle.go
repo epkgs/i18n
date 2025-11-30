@@ -41,13 +41,27 @@ func (b *i18nBundle) Str(txt string, args ...any) types.Stringer {
 }
 
 // NStr selects singular or plural form of string based on quantity and formats it
-//   - isOne: boolean value to determine whether to use singular form
-//   - one: singular form string template
-//   - others: plural form string template
-//   - args: variable arguments for string formatting
+//   - n: quantity value to determine singular/plural form. Accepts numeric types (int, float, etc.) and boolean.
+//     For numeric types: singular form is used when value equals 1
+//     For boolean: singular form is used when value is true
+//     Other types default to plural form
+//   - one: singular form string template with placeholders
+//   - others: plural form string template with placeholders
+//   - args: variable arguments for string formatting, replacing placeholders in templates
 //
-// Returns: translatable types. interface
-func (b *i18nBundle) NStr(isOne bool, one, others string, args ...any) types.Stringer {
+// Returns: internationalized Stringer interface based on quantity
+func (b *i18nBundle) NStr(n any, one, others string, args ...any) types.Stringer {
+
+	var isOne bool
+	switch t := n.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+		isOne = t == 1
+	case bool:
+		isOne = t
+	default:
+		isOne = false
+	}
+
 	if isOne {
 		return b.Str(one, args...)
 	}
@@ -63,19 +77,18 @@ func (b *i18nBundle) Err(txt string, args ...any) types.Error {
 	return errors.New(b.Str(txt, args...))
 }
 
-// NErr selects singular or plural form of string based on quantity and formats it
-//   - isOne: boolean value to determine whether to use singular form
-//   - one: singular form string template
-//   - others: plural form string template
-//   - args: variable arguments for string formatting
+// NErr creates an internationalized error based on quantity, selecting singular or plural form
+//   - n: quantity value to determine singular/plural form. Accepts numeric types (int, float, etc.) and boolean.
+//     For numeric types: singular form is used when value equals 1
+//     For boolean: singular form is used when value is true
+//     Other types default to plural form
+//   - one: singular form error message template with placeholders
+//   - others: plural form error message template with placeholders
+//   - args: variable arguments for string formatting, replacing placeholders in templates
 //
-// Returns: translatable types.Error interface
-func (b *i18nBundle) NErr(isOne bool, one, others string, args ...any) types.Error {
-	if isOne {
-		return b.Err(one, args...)
-	} else {
-		return b.Err(others, args...)
-	}
+// Returns: internationalized Error interface based on quantity
+func (b *i18nBundle) NErr(n any, one, others string, args ...any) types.Error {
+	return errors.New(b.NStr(n, one, others, args...))
 }
 
 func (b *i18nBundle) SetDefaultLanguage(t language.Tag) bool {
