@@ -153,7 +153,7 @@ func someHandler(c *gin.Context) {
     
     // Using singular/plural forms for errors
     itemCount := 0
-    pluralErr := locales.User.NErr(itemCount == 1, "%d item found", "%d items found", itemCount)
+    pluralErr := locales.User.NErr(itemCount, "%d item found", "%d items found", itemCount)
     response.Fail(c, pluralErr)
 }
 ```
