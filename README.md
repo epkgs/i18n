@@ -13,32 +13,6 @@ A simple yet powerful internationalization library for Go applications with supp
 - ✅ Thread-safe bundle caching
 - ✅ CLI tool for extracting translation keys from source code
 
-## 🧱 Project Structure
-
-```bash
-i18n/
-├── cmd/
-│   └── i18ncli/           # CLI tool for extracting translation keys
-├── errors/                # Error handling package
-├── examples/              # Usage examples
-│   ├── simple/            # Basic usage example
-│   └── i18n-errors/       # Internationalized error handling example
-├── internal/              # Internal implementations
-│   ├── bundle.go          # Bundle management
-│   ├── context.go         # Context handling for language preferences
-│   ├── interface.go       # Core interfaces
-│   ├── matcher.go         # Language matching algorithms
-│   ├── stringer.go        # String translation implementation
-│   └── utils.go           # Utility functions
-├── plural/                # Plural form handling
-│   └── en.go              # English plural forms
-├── i18n.go                # Main package entry point
-├── i18n_alias.go          # Type aliases
-├── i18n_func.go           # Functional APIs
-├── i18n_interface.go      # Interface definitions
-└── i18n_middleware.go     # Gin middleware for language detection
-```
-
 ## 🚀 Quick Start
 ### 1. Define translation bundles
 Create a bundle for your translations:
