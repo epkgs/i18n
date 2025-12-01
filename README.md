@@ -144,7 +144,7 @@ err := bundle.Err("Something went wrong: %s", details)
 
 // Create a translatable string with singular/plural forms
 itemCount := 1
-str := bundle.NStr(itemCount == 1, "%d item found", "%d items found", itemCount)
+str := bundle.NStr(itemCount, "%d item found", "%d items found", itemCount)
 
 // Create an internationalized error with singular/plural forms
 import "github.com/epkgs/i18n/plural"
